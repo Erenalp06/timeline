@@ -54,8 +54,14 @@ Bir kayıt detayını açıp **Bağlantı ekle** butonunu kullanarak aynı proje
 
 `version: 1` korunmuştur. Eski yedeklerde `relations` bulunmayabilir; bu alan isteğe bağlıdır. Bağlantılar `relations: [{"type":"resolves|continues|related","targetId":"..."}]` biçiminde saklanır. Aynı proje kısıtlaması uygulanır. JSON içe aktarımı eskiden olduğu gibi mevcut verilerin tamamının yerine geçer; öncesinde yedek alın.
 
-## Gerçek / Test çalışma alanları
+## Çoklu çalışma alanı yönetimi
 
-Sol menüde **Gerçek** ve **Test** arasında geçiş yapılabilir. Gerçek ortam mevcut `localStorage` anahtarı olan `timeline.v1` ile devam eder; **mevcut veriler için otomatik taşıma yapılmaz**. Test ortamı `timeline.test.v1` anahtarında bağımsız tutulur. Seçilen ortam sekme bazında `sessionStorage` ile hatırlanır. Her ortamın projeleri, kayıtları, bağlantıları, çöp kutusu, içe/dışa aktarma işlemleri ayrıdır.
+Sol menüdeki **Çalışma alanları** bölümünden istediğin kadar (en fazla 100) bağımsız yerel çalışma alanı oluşturabilir, bunlar arasında geçiş yapabilir ve **Yönet** ile alanları yeniden adlandırabilir veya silebilirsin. Yeni bir alan **boş** başlatılabilir veya açık alanın verilerinin bir **kopyası** ile oluşturulabilir. Kopyalama sonradan senkronizasyon anlamına gelmez.
 
-Test ortamındaki **Gerçek verileri teste kopyala** düğmesi, onaydan sonra gerçek verilerin bir kopyasını test alanına aktarır. Gerçek alanı değiştirmez ancak testteki eski verilerin üzerine yazar. JSON yedekleri `workspace` alanı içerir; eski sürümün `version:1` yedekleri uyumludur. İçe aktarmada kaynak ve hedef ortam gösterilir; seçili çalışma alanına yazılır. Bu ayrım sunucu tarafı çok kiracılı yapı veya kimlik doğrulama değildir ve yalnızca o tarayıcı profiline özgüdür.
+Eski sürümlerdeki **Gerçek** ve **Test** alanları ilk açılışta otomatik listelenir. Var olan `timeline.v1` ve `timeline.test.v1` anahtarları **aynen korunur**; hiçbir veri taşınmaz. Yeni alanlar `timeline.workspace.<id>.v1` altında saklanır. Alan listesi `timeline.workspaces.v1`, sekmenin seçili alanı ise `sessionStorage` içerisinde saklanır.
+
+Alan silmek içindeki bütün projeleri, kayıtları, bağlantıları ve çöp kutusunu siler. Uygulama bu işlem için iki aşamalı onay ister; **son çalışma alanını silmeye izin vermez**. Silmeden önce ilgili alanda JSON dışa aktarımıyla yedek almak önemlidir.
+
+JSON dışa aktarma ve içe aktarma her zaman **o anda seçili çalışma alanına** uygulanır. Dışa aktarılan JSON'a `workspace` kimliği eklenir. Eski `version: 1` yedekleri uyumludur. İçeri aktarmak alanın adını, kimliğini veya listesini değiştirmez; yalnızca hedef alanın proje ve kayıt verilerinin yerini alır.
+
+Bu yapıda kullanıcı hesabı veya sunucu tarafı erişim kontrolü yoktur. Çalışma alanları yalnızca aynı tarayıcı profilinin yerel depolamasında ayrılır.
