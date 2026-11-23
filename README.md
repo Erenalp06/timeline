@@ -13,9 +13,9 @@ Tarayıcıda çalışan, projelere ayrılmış kişisel çalışma günlüğü.
 - Arama kısayolu: Ctrl+K (macOS: Cmd+K), sonuçtan ilgili gün ve kayda geçiş
 - LLM gerektirmeyen, kural tabanlı Markdown biçimlendirme ve önizleme
 - Kayıt türü, başlık ve açıklamasını düzenleme; son düzenleme zamanını saklama
-- Onay penceresi ile kayıt silme (kalıcı işlem)
+- Kayıtları çöp kutusuna taşıma, orijinal tarihine geri yükleme veya kalıcı silme
 - Verilerin tarayıcıda localStorage ile saklanması
-- Bütün projeleri JSON olarak dışa aktarma ve içe aktarma
+- Bütün projeleri (çöp kutusundaki kayıtlar dahil) JSON olarak dışa aktarma ve içe aktarma
 - Tamamen statik, frameworksüz HTML/CSS/JavaScript; sunucu ve veritabanı gerektirmez
 
 ## GitHub Pages
@@ -36,8 +36,12 @@ Veriler yalnızca kullanılan tarayıcı profilinin localStorage alanında sakla
 
 ## Tarih kuralı
 
-Yeni kayıtlar cihazın yerel tarihi ve saati ile oluşturulur. Geçmişe tarih seçimi yoktur. Mevcut kayıtların içeriği düzenlenebilir, ancak oluşturulma tarihi ve saati sabit kalır. Kayıt silme işlemi onay gerektirir ve geri alınamaz. Bu, sunucusuz bir uygulamada değiştirilemez kayıtların kriptografik olarak doğrulanabildiği anlamına gelmez; bilgisayar saati veya JSON dosyası değiştirilebilir.
+Yeni kayıtlar cihazın yerel tarihi ve saati ile oluşturulur. Geçmişe tarih seçimi yoktur. Mevcut kayıtların içeriği düzenlenebilir, ancak oluşturulma tarihi ve saati sabit kalır. Silinen kayıtlar önce çöp kutusuna taşınır ve geri yüklenebilir; çöp kutusundan kalıcı silme geri alınamaz. Bu, sunucusuz bir uygulamada değiştirilemez kayıtların kriptografik olarak doğrulanabildiği anlamına gelmez; bilgisayar saati veya JSON dosyası değiştirilebilir.
 
 ## Not
 
 Bu erken sürümdür. Kayıtlar metin ve sınırlı Markdown biçimlendirmesi içerir; dosya eki, bulut senkronizasyonu ve kullanıcı hesabı yoktur.
+
+## Çöp kutusu
+
+Bir kayıt silindiğinde zaman çizelgesinden ve aramadan gizlenir; çöp kutusunda saklanır. Sol menüde **Çöp kutusu** üzerinden kayıt geri yüklenebilir veya ikinci onayla kalıcı silinebilir. Geri yükleme kaydın orijinal tarihini, başlığını, türünü ve içeriğini korur. JSON yedekleri çöp kutusunu da içerir; eski JSON dosyaları aynı formatla içe aktarılabilir. Çöp kutusu otomatik boşaltılmaz.
