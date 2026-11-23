@@ -123,12 +123,24 @@ select{border:1px solid #e2e7ef;border-radius:9px;color:#687487;padding:10px;bac
 .danger-button{border:1px solid #f4d5d8;background:#fff5f5;color:#b74250;border-radius:10px;padding:10px 13px;font-weight:750;font-size:12px}
 .danger-button:hover{background:#ffe8ea;border-color:#e6aab3}
 .edit-date-note{background:#f5f7ff;border:1px solid #e5e9fa;border-radius:9px;padding:10px 12px;font-size:12px;color:#6575a1;margin-bottom:14px}
+
+/* Recoverable records */
+.sidebar-bottom #trash{display:flex;justify-content:space-between;align-items:center;color:#61708c}
+#trashCount:not(:empty){background:#edf0fb;color:#4f60c5;padding:2px 8px;border-radius:99px}
+.trash-dialog{width:min(760px,100%);max-height:min(86vh,840px);display:flex;flex-direction:column}
+.trash-list{overflow:auto;display:grid;gap:10px;min-height:80px}
+.trash-item{border:1px solid #e9edf4;border-radius:12px;padding:14px;display:grid;gap:9px}
+.trash-item strong{font-size:13px;overflow-wrap:anywhere}
+.trash-item small{color:#97a3b2;font-size:11px}
+.trash-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.trash-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.trash-empty{padding:28px 12px;text-align:center;color:#98a3b0;font-size:13px}
 </style>
 </head>
 <body>
 <div class="app">
 <aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
-<div class="sidebar-bottom"><button id="export">↓ JSON dışa aktar</button><button id="import">↑ JSON içe aktar</button><input type="file" id="file" accept=".json,application/json" hidden></div></aside>
+<div class="sidebar-bottom"><button id="trash">♲ Çöp kutusu <span id="trashCount"></span></button><button id="export">↓ JSON dışa aktar</button><button id="import">↑ JSON içe aktar</button><input type="file" id="file" accept=".json,application/json" hidden></div></aside>
 <main><header class="top"><div class="crumb">Çalışma alanı / <strong id="crumb">Projelerim</strong></div><div class="top-right"><button class="search-launch" id="openSearch" type="button" aria-label="Kayıtlarda ara">⌕ Ara <kbd>Ctrl K</kbd></button><span class="date" id="date"></span></div></header>
 <div class="content"><div class="intro"><div><div class="kicker">PROJE GÜNLÜĞÜ</div><h1 id="title">Projelerin, bir arada.</h1><p class="desc" id="description">Her karar, her geliştirme ve her kilometre taşı kendi zamanında.</p></div><button class="primary" id="addEntry">＋ Bugüne kayıt ekle</button></div>
 <div class="stats" id="stats"></div>
@@ -147,8 +159,8 @@ function validate(x){
 if(!x||x.version!==1||!Array.isArray(x.projects)||!Array.isArray(x.entries)||x.projects.length>1000||x.entries.length>100000)throw Error("Geçersiz veya desteklenmeyen JSON yedeği.");
 const ids=new Set(),entries=new Set();
 for(const p of x.projects){if(!p||typeof p.id!=="string"||!p.id||ids.has(p.id)||typeof p.name!=="string"||!p.name.trim()||p.name.length>120||typeof p.createdAt!=="string")throw Error("Proje verisi geçersiz.");ids.add(p.id)}
-for(const e of x.entries){if(!e||typeof e.id!=="string"||!e.id||entries.has(e.id)||!ids.has(e.projectId)||!TYPES[e.type]||typeof e.title!=="string"||!e.title.trim()||e.title.length>160||typeof e.body!=="string"||e.body.length>12000||typeof e.createdAt!=="string"||typeof e.date!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||Number.isNaN(Date.parse(e.date+"T12:00:00"))||new Date(e.date+"T12:00:00").toISOString().slice(0,10)!==e.date)throw Error("Zaman çizelgesi kaydı geçersiz.");entries.add(e.id)}
-return {version:1,projects:x.projects.map(p=>({id:p.id,name:p.name.trim(),description:typeof p.description==="string"?p.description.slice(0,500):"",createdAt:p.createdAt,color:PALETTE.includes(p.color)?p.color:PALETTE[0]})),entries:x.entries.map(e=>({id:e.id,projectId:e.projectId,type:e.type,title:e.title.trim(),body:e.body,date:e.date,createdAt:e.createdAt,...(typeof e.updatedAt==="string"?{updatedAt:e.updatedAt}:{})}))};
+for(const e of x.entries){if(!e||(e.deletedAt!==undefined&&(typeof e.deletedAt!=="string"||Number.isNaN(Date.parse(e.deletedAt))))||typeof e.id!=="string"||!e.id||entries.has(e.id)||!ids.has(e.projectId)||!TYPES[e.type]||typeof e.title!=="string"||!e.title.trim()||e.title.length>160||typeof e.body!=="string"||e.body.length>12000||typeof e.createdAt!=="string"||typeof e.date!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||Number.isNaN(Date.parse(e.date+"T12:00:00"))||new Date(e.date+"T12:00:00").toISOString().slice(0,10)!==e.date)throw Error("Zaman çizelgesi kaydı geçersiz.");entries.add(e.id)}
+return {version:1,projects:x.projects.map(p=>({id:p.id,name:p.name.trim(),description:typeof p.description==="string"?p.description.slice(0,500):"",createdAt:p.createdAt,color:PALETTE.includes(p.color)?p.color:PALETTE[0]})),entries:x.entries.map(e=>({id:e.id,projectId:e.projectId,type:e.type,title:e.title.trim(),body:e.body,date:e.date,createdAt:e.createdAt,...(typeof e.updatedAt==="string"?{updatedAt:e.updatedAt}:{}),...(typeof e.deletedAt==="string"?{deletedAt:e.deletedAt}:{})}))};
 }
 let data;try{data=validate(JSON.parse(localStorage.getItem(KEY)))}catch{data=blank()}
 let selected=data.projects[0]?.id||null,selectedDay=null;
@@ -201,13 +213,13 @@ if(!groups.size)return raw;
 return [...groups].map(([title,items])=>"### "+title+"\n"+items.map(x=>"- "+x).join("\n")).join("\n\n")
 }
 function editEntry(entry){
-const current=data.entries.find(x=>x.id===entry.id);if(!current){notify("Kayıt artık bulunmuyor.");return}
+const current=data.entries.find(x=>x.id===entry.id&&!x.deletedAt);if(!current){notify("Kayıt artık bulunmuyor.");return}
 dialog("Kaydı düzenle","Başlık, kategori ve açıklamayı değiştirebilirsin. Oluşturulma tarihi ve saati korunur.",[
 {name:"type",label:"Kayıt türü",kind:"select",options:TYPES},
 {name:"title",label:"Başlık",max:160,placeholder:"Kayıt başlığı"},
 {name:"body",label:"Açıklama (Markdown destekler)",kind:"textarea",required:false,max:12000}
 ],"Değişiklikleri kaydet",values=>{
-const item=data.entries.find(x=>x.id===entry.id);
+const item=data.entries.find(x=>x.id===entry.id&&!x.deletedAt);
 if(!item)throw Error("Kayıt bulunamadı.");
 if(!values.title)throw Error("Başlık boş olamaz.");
 if(!TYPES[values.type])throw Error("Geçersiz kayıt türü.");
@@ -224,14 +236,13 @@ const note=node("div","edit-date-note","Oluşturulma: "+pretty(current.date)+" �
 panel.querySelector(".field").before(note);attachEditorTools();
 }
 function deleteEntry(entry){
-const item=data.entries.find(x=>x.id===entry.id);if(!item){notify("Kayıt zaten silinmiş.");return}
-if(!confirm("“"+item.title+"” kaydını kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz. Önce JSON yedeği alabilirsin."))return;
-const index=data.entries.indexOf(item);data.entries.splice(index,1);
-if(!persist()){data.entries.splice(index,0,item);return}
-$("modal").replaceChildren();render();notify("Kayıt silindi.");
+const item=data.entries.find(x=>x.id===entry.id&&!x.deletedAt);if(!item){notify("Kayıt bulunamadı.");return}
+if(!confirm("“"+item.title+"” kaydı çöp kutusuna taşınsın mı? Daha sonra geri yükleyebilirsin."))return;
+item.deletedAt=new Date().toISOString();if(!persist()){delete item.deletedAt;return}
+$("modal").replaceChildren();render();notify("Kayıt çöp kutusuna taşındı.");
 }
 function showEntry(entry){
-const e=data.entries.find(x=>x.id===entry.id);if(!e){notify("Kayıt bulunamadı.");return}
+const e=data.entries.find(x=>x.id===entry.id&&!x.deletedAt);if(!e){notify("Kayıt bulunamadı.");return}
 const overlay=node("div","overlay"),panel=node("section","dialog detail-card"),top=node("div","detail-top"),badge=node("span","chip",TYPES[e.type]);
 badge.style.setProperty("--accent",COLORS[e.type][0]);badge.style.setProperty("--tint",COLORS[e.type][1]);
 top.append(badge,node("span","detail-date",pretty(e.date)+" · "+new Date(e.createdAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})));
@@ -247,6 +258,27 @@ overlay.onclick=ev=>{if(ev.target===overlay)dismiss()};document.addEventListener
 $("modal").replaceChildren(overlay);close.focus();
 }
 
+function openTrash(){
+const overlay=node("div","overlay"),panel=node("section","dialog trash-dialog"),header=node("div","trash-top");
+header.append(node("h2","","Çöp kutusu"));const close=node("button","secondary","Kapat");close.type="button";header.append(close);panel.append(header);
+panel.append(node("p","","Silinen kayıtlar burada saklanır. Geri yüklenen kayıt, orijinal tarihindeki yerine döner. Kalıcı silme geri alınamaz."));
+const list=node("div","trash-list");panel.append(list);
+function draw(){
+const deleted=data.entries.filter(e=>e.deletedAt).sort((a,b)=>b.deletedAt.localeCompare(a.deletedAt));list.replaceChildren();
+if(!deleted.length){list.append(node("div","trash-empty","Çöp kutusu boş."));return}
+for(const e of deleted){
+const item=node("article","trash-item"),project=data.projects.find(p=>p.id===e.projectId);
+item.append(node("strong","",e.title),node("small","",(project?.name||"Proje")+" · "+pretty(e.date)+" · "+TYPES[e.type]+" · Silinme: "+new Date(e.deletedAt).toLocaleString("tr-TR")));
+const controls=node("div","trash-buttons"),restore=node("button","secondary","Geri yükle"),destroy=node("button","danger-button","Kalıcı sil");
+restore.type="button";destroy.type="button";
+restore.onclick=()=>{const old=e.deletedAt;delete e.deletedAt;if(!persist()){e.deletedAt=old;return}render();draw();notify("Kayıt orijinal tarihine geri yüklendi.")};
+destroy.onclick=()=>{if(!confirm("“"+e.title+"” kalıcı olarak silinsin mi? Bu işlem geri alınamaz."))return;const idx=data.entries.indexOf(e);if(idx<0)return;data.entries.splice(idx,1);if(!persist()){data.entries.splice(idx,0,e);return}render();draw();notify("Kayıt kalıcı olarak silindi.")};
+controls.append(restore,destroy);item.append(controls);list.append(item)}
+}
+function dismiss(){overlay.remove();document.removeEventListener("keydown",onKey)}
+function onKey(e){if(e.key==="Escape")dismiss()}
+close.onclick=dismiss;overlay.onclick=e=>{if(e.target===overlay)dismiss()};document.addEventListener("keydown",onKey);overlay.append(panel);$("modal").replaceChildren(overlay);draw();close.focus();
+}
 function searchText(value){return String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")}
 function openSearch(){
 const overlay=node("div","overlay"),panel=node("section","dialog search-dialog"),heading=node("div","search-heading");
@@ -261,7 +293,7 @@ controls.append(query,scope);panel.append(controls);
 const count=node("div","search-count"),results=node("div","search-results");results.setAttribute("aria-live","polite");panel.append(count,results);
 function update(){
 const tokens=searchText(query.value.trim()).split(/\s+/).filter(Boolean);
-const matches=data.entries.filter(e=>{
+const matches=data.entries.filter(e=>{if(e.deletedAt)return false;
 if(scope.value==="project"&&e.projectId!==selected)return false;
 if(scope.value==="day"&&(e.projectId!==selected||e.date!==selectedDay))return false;
 const project=data.projects.find(p=>p.id===e.projectId);
@@ -324,11 +356,11 @@ const link=node("button","day-open record-link","Kaydı aç →");link.onclick=(
 focus.append(list);wrap.append(focus);
 $("goToday").textContent="Tüm günler →";$("goToday").onclick=()=>{selectedDay=null;render()};
 }
-function render(){if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id):[];
+function render(){if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id&&!e.deletedAt):[];
 $("goToday").textContent="Bugüne git →";$("goToday").onclick=()=>{selectedDay=null;render();$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"})};$("date").textContent=pretty(day(),{day:"numeric",month:"long",year:"numeric"});$("crumb").textContent=p?.name||"Projelerim";$("title").textContent=p?.name||"Projelerin, bir arada.";$("description").textContent=p?.description||(p?"Bu projede alınan kararları ve yapılan çalışmaları kronolojik takip et.":"İlk projeni oluştur, gelişmeleri tarihleriyle saklamaya başla.");$("addEntry").disabled=!p;$("filter").disabled=!p;$("goToday").disabled=!p;
-$("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id).length));b.onclick=()=>{selected=project.id;$("filter").value="all";render()};return b}));
+$("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id&&!e.deletedAt).length));b.onclick=()=>{selected=project.id;$("filter").value="all";render()};return b}));
 const ordered=[...all].sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt));$("stats").replaceChildren(stat(all.length,"Toplam kayıt"),divider(),stat(all.filter(e=>e.type==="decision").length,"Alınan karar"),divider(),stat(new Set(all.map(e=>e.date)).size,"Aktif gün"),divider(),stat(ordered.length?pretty(ordered[ordered.length-1].date):"—","Son kayıt"));
-$("metadata").textContent=p?p.name+" · "+all.length+" kayıt":"Henüz proje yok";
+$("trashCount").textContent=data.entries.filter(e=>e.deletedAt).length||"";$("metadata").textContent=p?p.name+" · "+all.length+" kayıt":"Henüz proje yok";
 const filtered=ordered.filter(e=>$("filter").value==="all"||e.type===$("filter").value),wrap=$("timeline");wrap.replaceChildren();if(selectedDay){renderDay(selectedDay,filtered.filter(e=>e.date===selectedDay));return}
 if(!filtered.length){const empty=node("div","empty"),inner=node("div");inner.append(node("div","empty-icon","◇"),node("h2","",p?(all.length?"Bu filtrede kayıt bulunamadı":"Bu hikâye henüz başlamadı"):"Henüz bir proje yok"),node("p","",p?"Bugünün ilk notunu ekle ve projenin geçmişini oluşturmaya başla.":"İlk projeni oluşturduğunda zaman çizelgen burada görünecek."));const button=node("button","primary",p?"＋ İlk kaydı oluştur":"＋ Proje oluştur");button.onclick=p?newEntry:newProject;inner.append(button);empty.append(inner);wrap.append(empty);return}
 const line=node("div","timeline"),groups=new Map();
@@ -346,7 +378,7 @@ section.append(header);for(const entry of entries)section.append(makeEntryRow(en
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
-$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
+$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
 $("import").onclick=()=>$("file").click();
 $("file").onchange=async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;try{if(file.size>20*1024*1024)throw Error("Dosya 20 MB sınırını aşıyor.");const imported=validate(JSON.parse(await file.text()));if(!confirm("İçe aktarma mevcut tüm proje ve kayıtların yerini alacak. Devam etmek istiyor musun?"))return;const old=data;data=imported;if(!persist()){data=old;return}selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("JSON yedeği içe aktarıldı.")}catch(err){alert("İçe aktarma başarısız: "+err.message)}};
