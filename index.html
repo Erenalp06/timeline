@@ -232,6 +232,38 @@ button:focus-visible,select:focus-visible{outline:3px solid #aab7ff;outline-offs
 @media(prefers-reduced-motion:reduce){
   .primary:hover:not(:disabled),.secondary:hover,.project:hover:not(.active),.event:hover .event-card{transform:none}
 }
+
+/* V9 — responsive timeline and lightweight entry relationships */
+.content{max-width:none;width:100%;padding-left:clamp(22px,2.5vw,52px);padding-right:clamp(22px,2.5vw,52px)}
+.panel{width:100%}
+.viewport{width:100%}
+.timeline{box-sizing:border-box}
+.timeline.single-day{min-width:100%;display:flex;justify-content:center;align-items:flex-start;padding-left:40px;padding-right:40px}
+.timeline.single-day:before{left:12%;right:12%;width:auto}
+.timeline.single-day .event{width:clamp(320px,38vw,560px);max-width:100%}
+.timeline.single-day .event-card{max-height:490px;min-height:130px;padding:17px}
+.timeline.single-day .event-date{left:0}
+.timeline.single-day .event-node{left:5px}
+.timeline.single-day .stem{left:14px}
+.linked-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:7px;background:#eef0ff;color:#5264b9;font-size:10px;font-weight:800;white-space:nowrap;flex:none}
+.resolved-tag{background:#eaf8f0;color:#218464}
+.relation-panel{border:1px solid #e9edf5;border-radius:13px;padding:13px;margin-top:20px;background:#fafbfe}
+.relation-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.relation-top strong{font-size:13px;color:#384860}
+.relation-top button{padding:8px 10px;font-size:11px}
+.relation-empty{margin:8px 0!important;font-size:12px!important;color:#98a4b3!important}
+.relation-row{display:flex;align-items:stretch;gap:6px;border-top:1px solid #e8ecf3;padding:7px 0}
+.relation-link{flex:1;min-width:0;border:0;text-align:left;background:transparent;border-radius:8px;padding:8px;display:grid;gap:4px;cursor:pointer}
+.relation-link:hover{background:#eff2fc}
+.relation-label{color:#6477c4;font-size:10px;font-weight:800}
+.relation-link strong{font-size:12px;overflow-wrap:anywhere;color:#3d4b64}
+.relation-link small{color:#9aa5b6;font-size:11px}
+.relation-remove{background:transparent;border:0;border-radius:8px;color:#a3adbb;font-size:19px;padding:0 10px}
+.relation-remove:hover{background:#fbeef0;color:#bc5060}
+.entry-title{gap:5px}
+.entry-title-text{min-width:0}
+@media(min-width:1600px){.event{width:clamp(265px,18vw,350px)}.timeline{gap:25px}.event-card{max-height:370px}}
+@media(max-width:760px){.content{padding:28px 17px}.timeline.single-day{padding-left:22px;padding-right:22px}.timeline.single-day .event{width:min(100%,380px)}.timeline.single-day:before{left:22px;right:22px}}
 </style>
 </head>
 <body>
@@ -257,7 +289,9 @@ if(!x||x.version!==1||!Array.isArray(x.projects)||!Array.isArray(x.entries)||x.p
 const ids=new Set(),entries=new Set();
 for(const p of x.projects){if(!p||typeof p.id!=="string"||!p.id||ids.has(p.id)||typeof p.name!=="string"||!p.name.trim()||p.name.length>120||typeof p.createdAt!=="string")throw Error("Proje verisi geçersiz.");ids.add(p.id)}
 for(const e of x.entries){if(!e||(e.deletedAt!==undefined&&(typeof e.deletedAt!=="string"||Number.isNaN(Date.parse(e.deletedAt))))||typeof e.id!=="string"||!e.id||entries.has(e.id)||!ids.has(e.projectId)||!TYPES[e.type]||typeof e.title!=="string"||!e.title.trim()||e.title.length>160||typeof e.body!=="string"||e.body.length>12000||typeof e.createdAt!=="string"||typeof e.date!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(e.date)||Number.isNaN(Date.parse(e.date+"T12:00:00"))||new Date(e.date+"T12:00:00").toISOString().slice(0,10)!==e.date)throw Error("Zaman çizelgesi kaydı geçersiz.");entries.add(e.id)}
-return {version:1,projects:x.projects.map(p=>({id:p.id,name:p.name.trim(),description:typeof p.description==="string"?p.description.slice(0,500):"",createdAt:p.createdAt,color:PALETTE.includes(p.color)?p.color:PALETTE[0]})),entries:x.entries.map(e=>({id:e.id,projectId:e.projectId,type:e.type,title:e.title.trim(),body:e.body,date:e.date,createdAt:e.createdAt,...(typeof e.updatedAt==="string"?{updatedAt:e.updatedAt}:{}),...(typeof e.deletedAt==="string"?{deletedAt:e.deletedAt}:{})}))};
+for(const e of x.entries){if(e.relations!==undefined){if(!Array.isArray(e.relations)||e.relations.length>200)throw Error("Kayıt bağlantıları geçersiz.");for(const rel of e.relations){if(!rel||!["resolves","continues","related"].includes(rel.type)||typeof rel.targetId!=="string"||!rel.targetId||rel.targetId===e.id)throw Error("Kayıt bağlantısı geçersiz.")}}}
+const projectByEntry=new Map(x.entries.map(e=>[e.id,e.projectId]));
+return {version:1,projects:x.projects.map(p=>({id:p.id,name:p.name.trim(),description:typeof p.description==="string"?p.description.slice(0,500):"",createdAt:p.createdAt,color:PALETTE.includes(p.color)?p.color:PALETTE[0]})),entries:x.entries.map(e=>({id:e.id,projectId:e.projectId,type:e.type,title:e.title.trim(),body:e.body,date:e.date,createdAt:e.createdAt,...(typeof e.updatedAt==="string"?{updatedAt:e.updatedAt}:{}),...(typeof e.deletedAt==="string"?{deletedAt:e.deletedAt}:{}),...(Array.isArray(e.relations)?{relations:e.relations.filter(r=>!projectByEntry.has(r.targetId)||projectByEntry.get(r.targetId)===e.projectId).map(r=>({type:r.type,targetId:r.targetId}))}:{})}))};
 }
 let data;try{data=validate(JSON.parse(localStorage.getItem(KEY)))}catch{data=blank()}
 let selected=data.projects[0]?.id||null,selectedDay=null;
@@ -338,13 +372,70 @@ if(!confirm("“"+item.title+"” kaydı çöp kutusuna taşınsın mı? Daha so
 item.deletedAt=new Date().toISOString();if(!persist()){delete item.deletedAt;return}
 $("modal").replaceChildren();render();notify("Kayıt çöp kutusuna taşındı.");
 }
+const REL_TYPES={resolves:"Çözüyor",continues:"Devamı",related:"İlgili"};
+function outwardLinks(entry){return (entry.relations||[]).map(rel=>({rel,entry:data.entries.find(e=>e.id===rel.targetId)})).filter(x=>x.entry&&!x.entry.deletedAt)}
+function incomingLinks(entry){return data.entries.filter(e=>!e.deletedAt&&e.projectId===entry.projectId).flatMap(source=>(source.relations||[]).filter(rel=>rel.targetId===entry.id).map(rel=>({rel,entry:source})))}
+function resolvedBy(entry){return entry.type==="issue"?incomingLinks(entry).filter(x=>x.rel.type==="resolves"):[]}
+function relationBadge(entry){
+const count=outwardLinks(entry).length+incomingLinks(entry).length;
+if(!count)return null;
+const el=node("span","linked-tag",resolvedBy(entry).length?"✓ Çözüldü":count+" bağlantı");if(resolvedBy(entry).length)el.classList.add("resolved-tag");
+return el;
+}
+function editRelations(entry){
+const original=data.entries.find(e=>e.id===entry.id&&!e.deletedAt);if(!original)return;
+const candidates=data.entries.filter(e=>e.projectId===original.projectId&&!e.deletedAt&&e.id!==original.id);
+if(!candidates.length){notify("Bağlantı kurmak için aynı projede başka bir kayıt olmalı.");return}
+const overlay=node("div","overlay"),panel=node("section","dialog"),heading=node("h2","","Bağlantı ekle"),intro=node("p","","Bu kaydı aynı projedeki başka bir kayıtla ilişkilendir.");
+panel.append(heading,intro);
+const f=node("form"),typeLabel=node("label","field","İlişki türü"),type=node("select"),targetLabel=node("label","field","Bağlanacak kayıt"),target=node("select");
+for(const [k,v] of Object.entries(REL_TYPES)){const opt=node("option","",v);opt.value=k;type.append(opt)}
+for(const e of candidates){const opt=node("option","",pretty(e.date)+" · "+TYPES[e.type]+" · "+e.title);opt.value=e.id;target.append(opt)}
+typeLabel.append(type);targetLabel.append(target);f.append(typeLabel,targetLabel);
+const actions=node("div","dialog-actions"),cancel=node("button","secondary","İptal"),save=node("button","primary","Bağlantı ekle");
+cancel.type="button";save.type="submit";actions.append(cancel,save);f.append(actions);panel.append(f);
+function close(){overlay.remove();document.removeEventListener("keydown",onKey)}
+function onKey(ev){if(ev.key==="Escape")close()}
+cancel.onclick=close;overlay.onclick=ev=>{if(ev.target===overlay)close()};document.addEventListener("keydown",onKey);
+f.onsubmit=ev=>{ev.preventDefault();const source=data.entries.find(e=>e.id===original.id&&!e.deletedAt),dest=data.entries.find(e=>e.id===target.value&&!e.deletedAt);
+if(!source||!dest||source.projectId!==dest.projectId){notify("Hedef kayıt artık bulunamıyor.");return}
+if(type.value==="resolves"&&(source.type!=="solution"||dest.type!=="issue")){notify("Çözüyor ilişkisi yalnızca Çözüm → Sorun için kullanılabilir.");return}
+const old=Array.isArray(source.relations)?source.relations.map(r=>({...r})):null;
+if(!(source.relations||[]).some(r=>r.targetId===dest.id&&r.type===type.value))source.relations=[...(source.relations||[]),{type:type.value,targetId:dest.id}];else{notify("Bu bağlantı zaten mevcut.");return}
+if(!persist()){if(old)source.relations=old;else delete source.relations;return}
+close();render();showEntry(source);notify("Bağlantı oluşturuldu.")};
+overlay.append(panel);$("modal").replaceChildren(overlay);type.focus();
+}
+function removeRelation(sourceId,type,targetId){
+const source=data.entries.find(e=>e.id===sourceId&&!e.deletedAt);if(!source)return;
+if(!confirm("Bu bağlantı kaldırılsın mı? Kayıtlar silinmez."))return;
+const old=(source.relations||[]).map(r=>({...r}));
+source.relations=old.filter(r=>!(r.type===type&&r.targetId===targetId));
+if(!persist()){source.relations=old;return}
+render();showEntry(data.entries.find(e=>e.id===selectedEntryId)||source);notify("Bağlantı kaldırıldı.");
+}
+let selectedEntryId=null;
+function relationPanel(entry){
+const outgoing=outwardLinks(entry).map(x=>({...x,sourceId:entry.id,linked:x.entry}));
+const incoming=incomingLinks(entry).map(x=>({...x,sourceId:x.entry.id,linked:x.entry}));
+const box=node("div","relation-panel"),top=node("div","relation-top");top.append(node("strong","","İlişkili kayıtlar"));
+const add=node("button","secondary","＋ Bağlantı ekle");add.type="button";add.onclick=()=>editRelations(entry);top.append(add);box.append(top);
+if(!outgoing.length&&!incoming.length){box.append(node("p","relation-empty","Henüz bağlantı yok."));return box}
+for(const x of [...outgoing,...incoming]){
+const row=node("div","relation-row"),link=node("button","relation-link"),rm=node("button","relation-remove","×");
+const label=x.sourceId===entry.id?REL_TYPES[x.rel.type]:"Bağlı: "+REL_TYPES[x.rel.type];link.type="button";link.append(node("span","relation-label",label),node("strong","",x.linked.title),node("small","",pretty(x.linked.date)));
+link.onclick=()=>showEntry(x.linked);rm.type="button";rm.title="Bağlantıyı kaldır";rm.setAttribute("aria-label","Bağlantıyı kaldır");rm.onclick=()=>removeRelation(x.sourceId,x.rel.type,x.sourceId===entry.id?x.linked.id:entry.id);
+row.append(link,rm);box.append(row)}
+return box;
+}
 function showEntry(entry){
-const e=data.entries.find(x=>x.id===entry.id&&!x.deletedAt);if(!e){notify("Kayıt bulunamadı.");return}
+const e=data.entries.find(x=>x.id===entry.id&&!x.deletedAt);if(!e){notify("Kayıt bulunamadı.");return}selectedEntryId=e.id;
 const overlay=node("div","overlay"),panel=node("section","dialog detail-card"),top=node("div","detail-top"),badge=node("span","chip",TYPES[e.type]);
 badge.style.setProperty("--accent",COLORS[e.type][0]);badge.style.setProperty("--tint",COLORS[e.type][1]);
 top.append(badge,node("span","detail-date",pretty(e.date)+" · "+new Date(e.createdAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})));
 panel.append(top,node("h2","detail-title",e.title),renderMarkdown(e.body||"Bu kayda açıklama eklenmemiş."));
 if(e.updatedAt)panel.append(node("span","detail-date","Son düzenleme: "+new Date(e.updatedAt).toLocaleString("tr-TR")));
+panel.append(relationPanel(e));
 const actions=node("div","detail-actions"),remove=node("button","danger-button","Sil"),edit=node("button","secondary","Düzenle"),close=node("button","secondary","Kapat");
 remove.type="button";edit.type="button";close.type="button";
 const onKey=ev=>{if(ev.key==="Escape")dismiss()};
@@ -426,7 +517,7 @@ function makeEntryRow(entry){
 const row=node("button","entry-title"),marker=node("span","entry-marker");
 row.type="button";row.style.setProperty("--entry-color",COLORS[entry.type][0]);row.title=TYPES[entry.type]+" — detayı aç";
 row.setAttribute("aria-label",entry.title+" — "+TYPES[entry.type]+" detayını aç");
-row.append(marker,node("span","entry-title-text",entry.title),node("span","entry-arrow","›"));
+row.append(marker,node("span","entry-title-text",entry.title));const tag=relationBadge(entry);if(tag)row.append(tag);row.append(node("span","entry-arrow","›"));
 row.onclick=()=>showEntry(entry);return row;
 }
 function renderDay(date,items){
@@ -446,7 +537,7 @@ for(const e of records){
 const card=node("article","day-record"),badge=node("span","chip",TYPES[e.type]);
 badge.style.setProperty("--accent",COLORS[e.type][0]);badge.style.setProperty("--tint",COLORS[e.type][1]);
 card.style.setProperty("--record-color",COLORS[e.type][0]);card.style.animationDelay=Math.min(index++,12)*40+"ms";
-card.append(badge,node("h3","",e.title),node("span","detail-date",new Date(e.createdAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})));
+card.append(badge,node("h3","",e.title),node("span","detail-date",new Date(e.createdAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})));const badgeLink=relationBadge(e);if(badgeLink)card.append(badgeLink);
 if(e.body)card.append(renderMarkdown(e.body));
 const link=node("button","day-open record-link","Kaydı aç →");link.onclick=()=>showEntry(e);card.append(link);list.append(card)}
 }
@@ -455,7 +546,7 @@ $("goToday").textContent="Tüm günler →";$("goToday").onclick=()=>{selectedDa
 }
 function render(){if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id&&!e.deletedAt):[];
 $("goToday").textContent="Bugüne git →";$("goToday").onclick=()=>{selectedDay=null;render();$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"})};$("date").textContent=pretty(day(),{day:"numeric",month:"long",year:"numeric"});$("crumb").textContent=p?.name||"Projelerim";$("title").textContent=p?.name||"Projelerin, bir arada.";$("description").textContent=p?.description||(p?"Bu projede alınan kararları ve yapılan çalışmaları kronolojik takip et.":"İlk projeni oluştur, gelişmeleri tarihleriyle saklamaya başla.");$("addEntry").disabled=!p;$("filter").disabled=!p;$("goToday").disabled=!p;
-$("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id&&!e.deletedAt).length));b.onclick=()=>{selected=project.id;$("filter").value="all";render()};return b}));
+$("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id&&!e.deletedAt).length));b.onclick=()=>{selected=project.id;selectedDay=null;$("filter").value="all";render()};return b}));
 const ordered=[...all].sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt));$("stats").replaceChildren(stat(all.length,"Toplam kayıt"),divider(),stat(all.filter(e=>e.type==="decision").length,"Alınan karar"),divider(),stat(new Set(all.map(e=>e.date)).size,"Aktif gün"),divider(),stat(ordered.length?pretty(ordered[ordered.length-1].date):"—","Son kayıt"));
 $("trashCount").textContent=data.entries.filter(e=>e.deletedAt).length||"";$("metadata").textContent=p?p.name+" · "+all.length+" kayıt":"Henüz proje yok";
 const filtered=ordered.filter(e=>$("filter").value==="all"||e.type===$("filter").value),wrap=$("timeline");wrap.replaceChildren();if(selectedDay){renderDay(selectedDay,filtered.filter(e=>e.date===selectedDay));return}
@@ -473,7 +564,7 @@ const section=node("section","category-section"),header=node("div","category-hea
 header.append(node("span","category-indicator"),node("span","",TYPES[type]),node("span","category-number",entries.length+" kayıt"));
 section.append(header);for(const entry of entries)section.append(makeEntryRow(entry));card.append(section)}
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
-wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
+if(groups.size===1)line.classList.add("single-day");wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
 $("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
