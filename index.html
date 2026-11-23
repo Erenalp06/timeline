@@ -70,7 +70,7 @@ select{border:1px solid #e2e7ef;border-radius:9px;color:#687487;padding:10px;bac
 .day-record .detail-body{font-size:13px!important;margin:10px 0!important;max-height:260px;overflow:auto}
 .day-record .detail-date{font-size:11px}.day-record .record-link{margin-top:13px}
 .day-open{background:transparent;border:0;padding:0;color:#495dcf;font-size:12px;font-weight:750;text-align:left}
-.day-date-link{border:0;background:transparent;padding:0;text-align:left;font-size:12px;font-weight:800;color:#617084;cursor:pointer}
+.day-date-link{border:0;background:transparent;padding:0;text-align:left;font-size:12px;font-weight:800;color:#617084;cursor:pointer;white-space:nowrap}
 .day-date-link:hover,.day-open:hover{color:#3544af;text-decoration:underline}
 .event-card .day-meta button{border:0;background:transparent;color:#6270c5;cursor:pointer;font-size:11px;font-weight:750;padding:4px}
 .event-card .day-meta button:hover{text-decoration:underline}
@@ -208,7 +208,7 @@ row.type="button";row.style.setProperty("--entry-color",COLORS[entry.type][0]);r
 row.setAttribute("aria-label",entry.title+" — "+TYPES[entry.type]+" detayını aç");
 row.append(marker,node("span","entry-title-text",entry.title),node("span","entry-arrow","›"));
 row.onclick=()=>showEntry(entry);card.append(row)}
-const dateButton=node("button","day-date-link",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
+const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
 $("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
