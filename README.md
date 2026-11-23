@@ -12,6 +12,8 @@ Tarayıcıda çalışan, projelere ayrılmış kişisel çalışma günlüğü.
 - Başlık, açıklama, Markdown, tarih, proje ve tür üzerinden üç kapsamlı arama: tüm projeler, mevcut proje, mevcut gün
 - Arama kısayolu: Ctrl+K (macOS: Cmd+K), sonuçtan ilgili gün ve kayda geçiş
 - LLM gerektirmeyen, kural tabanlı Markdown biçimlendirme ve önizleme
+- Kayıt türü, başlık ve açıklamasını düzenleme; son düzenleme zamanını saklama
+- Onay penceresi ile kayıt silme (kalıcı işlem)
 - Verilerin tarayıcıda localStorage ile saklanması
 - Bütün projeleri JSON olarak dışa aktarma ve içe aktarma
 - Tamamen statik, frameworksüz HTML/CSS/JavaScript; sunucu ve veritabanı gerektirmez
@@ -34,7 +36,7 @@ Veriler yalnızca kullanılan tarayıcı profilinin localStorage alanında sakla
 
 ## Tarih kuralı
 
-Yeni kayıtlar cihazın yerel tarihi ve saati ile oluşturulur. Geçmişe tarih seçimi ve mevcut kaydı düzenleme özellikleri bilerek eklenmedi. Bu, sunucusuz bir uygulamada değiştirilemez kayıtların kriptografik olarak doğrulanabildiği anlamına gelmez; bilgisayar saati veya JSON dosyası değiştirilebilir.
+Yeni kayıtlar cihazın yerel tarihi ve saati ile oluşturulur. Geçmişe tarih seçimi yoktur. Mevcut kayıtların içeriği düzenlenebilir, ancak oluşturulma tarihi ve saati sabit kalır. Kayıt silme işlemi onay gerektirir ve geri alınamaz. Bu, sunucusuz bir uygulamada değiştirilemez kayıtların kriptografik olarak doğrulanabildiği anlamına gelmez; bilgisayar saati veya JSON dosyası değiştirilebilir.
 
 ## Not
 
