@@ -279,11 +279,15 @@ button:focus-visible,select:focus-visible{outline:3px solid #aab7ff;outline-offs
 .test-workspace .primary:hover:not(:disabled){background:linear-gradient(140deg,#ca9751,#b77c36)}
 .test-workspace .project.active{background:#fff5e7;border-color:#f5e5d0;color:#a06e32}
 @media(max-width:760px){.workspace-switch{max-width:240px;margin-bottom:7px}.workspace-info{margin-bottom:15px}}
+
+.copy-test{border:1px dashed #e8d6b9;border-radius:10px;background:#fffaf2;padding:10px 11px;color:#9e7136;font-size:11px;font-weight:750;margin:0 7px 17px;text-align:left}
+.copy-test:hover{background:#fff3e2;border-color:#d5a96a}
+.copy-test[hidden]{display:none}
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="workspace-switch" role="group" aria-label="Çalışma ortamı"><button id="workspaceReal" type="button" class="workspace-option active">Gerçek</button><button id="workspaceTest" type="button" class="workspace-option">Test</button></div><div class="workspace-info" id="workspaceInfo">Gerçek çalışma alanı</div><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
+<aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="workspace-switch" role="group" aria-label="Çalışma ortamı"><button id="workspaceReal" type="button" class="workspace-option active">Gerçek</button><button id="workspaceTest" type="button" class="workspace-option">Test</button></div><div class="workspace-info" id="workspaceInfo">Gerçek çalışma alanı</div><button id="copyToTest" class="copy-test" type="button" hidden>Gerçek verileri teste kopyala</button><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
 <div class="sidebar-bottom"><button id="trash">♲ Çöp kutusu <span id="trashCount"></span></button><button id="export">↓ JSON dışa aktar</button><button id="import">↑ JSON içe aktar</button><input type="file" id="file" accept=".json,application/json" hidden></div></aside>
 <main><header class="top"><div class="crumb"><span id="workspaceTop">Gerçek ortam</span> / <strong id="crumb">Projelerim</strong></div><div class="top-right"><button class="search-launch" id="openSearch" type="button" aria-label="Kayıtlarda ara">⌕ Ara <kbd>Ctrl K</kbd></button><span class="date" id="date"></span></div></header>
 <div class="content"><div class="intro"><div><div class="kicker">PROJE GÜNLÜĞÜ</div><h1 id="title">Projelerin, bir arada.</h1><p class="desc" id="description">Her karar, her geliştirme ve her kilometre taşı kendi zamanında.</p></div><button class="primary" id="addEntry">＋ Bugüne kayıt ekle</button></div>
@@ -319,6 +323,16 @@ let data=loadWorkspace(),selected=data?.projects[0]?.id||null,selectedDay=null;
 function persist(){
 if(!data)return false;
 try{localStorage.setItem(workspaceKey(),JSON.stringify(data));return true}catch{notify("Kaydetme başarısız. Depolama kapalı veya dolu.");return false}
+}
+function copyRealToTest(){
+if(workspace!=="test")return;
+let original;
+try{const raw=localStorage.getItem(KEY);original=raw===null?blank():validate(JSON.parse(raw))}
+catch(err){alert("Gerçek veriler okunamadı, kopyalama yapılmadı: "+err.message);return}
+if(!confirm("Gerçek ortamdaki "+original.projects.length+" proje ve "+original.entries.length+" kayıt Test ortamına kopyalansın mı? Test ortamının mevcut içeriği tamamen değişecek. Gerçek veriler etkilenmez."))return;
+const old=data;data=original;
+if(!persist()){data=old;return}
+selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("Gerçek kayıtların kopyası Test ortamına yüklendi.");
 }
 function switchWorkspace(next){
 if(next===workspace)return;
@@ -599,7 +613,7 @@ $("workspaceReal").classList.toggle("active",workspace==="real");
 $("workspaceTest").classList.toggle("active",workspace==="test");
 $("workspaceInfo").textContent=workspace==="test"?"Deneme ortamı · Gerçek verilerden ayrı":"Gerçek çalışma alanı";
 $("workspaceTop").textContent=workspace==="test"?"Test ortamı":"Gerçek ortam";
-document.body.classList.toggle("test-workspace",workspace==="test");
+document.body.classList.toggle("test-workspace",workspace==="test");$("copyToTest").hidden=workspace!=="test";
 if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id&&!e.deletedAt):[];
 $("goToday").textContent="Bugüne git →";$("goToday").onclick=()=>{selectedDay=null;render();$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"})};$("date").textContent=pretty(day(),{day:"numeric",month:"long",year:"numeric"});$("crumb").textContent=p?.name||"Projelerim";$("title").textContent=p?.name||"Projelerin, bir arada.";$("description").textContent=p?.description||(p?"Bu projede alınan kararları ve yapılan çalışmaları kronolojik takip et.":"İlk projeni oluştur, gelişmeleri tarihleriyle saklamaya başla.");$("addEntry").disabled=!p;$("filter").disabled=!p;$("goToday").disabled=!p;
 $("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id&&!e.deletedAt).length));b.onclick=()=>{selected=project.id;selectedDay=null;$("filter").value="all";render()};return b}));
@@ -622,7 +636,7 @@ section.append(header);for(const entry of entries)section.append(makeEntryRow(en
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 if(groups.size===1)line.classList.add("single-day");wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
-$("workspaceReal").onclick=()=>switchWorkspace("real");$("workspaceTest").onclick=()=>switchWorkspace("test");$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
+$("copyToTest").onclick=copyRealToTest;$("workspaceReal").onclick=()=>switchWorkspace("real");$("workspaceTest").onclick=()=>switchWorkspace("test");$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify({...data,workspace},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-"+workspace+"-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
 $("import").onclick=()=>$("file").click();
 $("file").onchange=async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;try{if(file.size>20*1024*1024)throw Error("Dosya 20 MB sınırını aşıyor.");const parsed=JSON.parse(await file.text());const imported=validate(parsed);
