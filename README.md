@@ -9,6 +9,8 @@ Tarayıcıda çalışan, projelere ayrılmış kişisel çalışma günlüğü.
 - Geliştirme, karar, sorun, çözüm ve not kayıt türleri
 - Tür filtresi, yatay kaydırma ve "Bugüne git" düğmesi
 - Aynı güne ait kayıtları tek tarih altında gruplama ve günlük detay görünümü
+- Tek günlük projelerde ortalanmış, geniş ekrana uyumlu kartlar
+- Kayıtlar arasında **Çözüyor**, **Devamı** ve **İlgili** bağlantıları; çözülmüş sorun etiketleri
 - Başlık, açıklama, Markdown, tarih, proje ve tür üzerinden üç kapsamlı arama: tüm projeler, mevcut proje, mevcut gün
 - Arama kısayolu: Ctrl+K (macOS: Cmd+K), sonuçtan ilgili gün ve kayda geçiş
 - LLM gerektirmeyen, kural tabanlı Markdown biçimlendirme ve önizleme
@@ -45,3 +47,9 @@ Bu erken sürümdür. Kayıtlar metin ve sınırlı Markdown biçimlendirmesi i�
 ## Çöp kutusu
 
 Bir kayıt silindiğinde zaman çizelgesinden ve aramadan gizlenir; çöp kutusunda saklanır. Sol menüde **Çöp kutusu** üzerinden kayıt geri yüklenebilir veya ikinci onayla kalıcı silinebilir. Geri yükleme kaydın orijinal tarihini, başlığını, türünü ve içeriğini korur. JSON yedekleri çöp kutusunu da içerir; eski JSON dosyaları aynı formatla içe aktarılabilir. Çöp kutusu otomatik boşaltılmaz.
+
+## Kayıt bağlantıları
+
+Bir kayıt detayını açıp **Bağlantı ekle** butonunu kullanarak aynı projedeki başka bir kayıtla ilişki kurabilirsin. **Çözüyor** ilişkisi, çözüm kaydından sorun kaydına oluşturulur. Sorun kaydının **Çözüldü** etiketi, buna gelen bağlantıdan hesaplanır. İlişkiler tek tek kaldırılabilir; bağlantı kaldırmak kayıtları silmez. İlişkiler JSON yedeğinde kaydedilir.
+
+`version: 1` korunmuştur. Eski yedeklerde `relations` bulunmayabilir; bu alan isteğe bağlıdır. Bağlantılar `relations: [{"type":"resolves|continues|related","targetId":"..."}]` biçiminde saklanır. Aynı proje kısıtlaması uygulanır. JSON içe aktarımı eskiden olduğu gibi mevcut verilerin tamamının yerine geçer; öncesinde yedek alın.
