@@ -84,13 +84,29 @@ select{border:1px solid #e2e7ef;border-radius:9px;color:#687487;padding:10px;bac
 .editor-tools button{border:1px solid #e3e7f0;background:#f8f9fd;color:#5363b9;border-radius:8px;font-size:11px;font-weight:700;padding:8px 10px}
 .editor-help{font-size:11px;color:#97a2b3}.preview-box{border:1px solid #e8ebf2;background:#fafbfe;border-radius:10px;padding:12px;min-height:90px;max-height:240px;overflow-y:auto;font-size:13px;color:#4d596b;margin:0 0 12px}
 @media(max-width:760px){.day-focus{padding:20px 15px}.day-heading h2{font-size:22px}}
+
+/* Search across workspace, project and day */
+.search-launch{border:1px solid #e5e9f2;background:#fff;border-radius:10px;padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:12px;color:#718096;transition:border-color .2s,color .2s}
+.search-launch:hover{border-color:#9da9df;color:#4054dc}.search-launch kbd{font-size:10px;color:#aab2c0;border:1px solid #e7ebf2;border-radius:5px;padding:2px 5px;margin-left:16px}
+.top-right{display:flex;align-items:center;gap:12px}.search-dialog{width:min(710px,100%);max-height:min(82vh,750px);display:flex;flex-direction:column;padding:22px}
+.search-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.search-heading h2{margin:0}
+.search-controls{display:flex;gap:9px;margin-bottom:12px}.search-query{flex:1;min-width:0;border:1px solid #dce2ef;border-radius:10px;padding:12px 14px;color:#263449;outline:none}.search-query:focus{border-color:#6173e7;box-shadow:0 0 0 3px #6173e720}
+.search-scope{max-width:180px;font-size:12px}.search-count{font-size:12px;color:#919bad;margin:0 0 10px}
+.search-results{overflow-y:auto;min-height:95px;display:grid;align-content:start;gap:8px}
+.search-result{border:1px solid #e9edf5;background:#fff;text-align:left;border-radius:11px;padding:13px 14px;transition:border-color .2s,transform .2s,background .2s;width:100%}
+.search-result:hover{border-color:#aebaf3;background:#f9faff;transform:translateY(-2px)}
+.search-result strong{display:block;font-size:13px;color:#354157;margin:6px 0;overflow-wrap:anywhere}
+.search-result small{display:block;font-size:11px;color:#9aa4b2;line-height:1.6}
+.search-result p{font-size:12px!important;color:#7c899b!important;line-height:1.5!important;margin:0!important;overflow-wrap:anywhere}
+.search-empty{text-align:center;padding:30px 12px;color:#9aa5b3;font-size:13px}
+@media(max-width:760px){.search-launch kbd{display:none}.search-launch{padding:9px}.top-right{gap:5px}.search-dialog{padding:16px}.search-controls{flex-direction:column}.search-scope{max-width:none}}
 </style>
 </head>
 <body>
 <div class="app">
 <aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
 <div class="sidebar-bottom"><button id="export">↓ JSON dışa aktar</button><button id="import">↑ JSON içe aktar</button><input type="file" id="file" accept=".json,application/json" hidden></div></aside>
-<main><header class="top"><div class="crumb">Çalışma alanı / <strong id="crumb">Projelerim</strong></div><span class="date" id="date"></span></header>
+<main><header class="top"><div class="crumb">Çalışma alanı / <strong id="crumb">Projelerim</strong></div><div class="top-right"><button class="search-launch" id="openSearch" type="button" aria-label="Kayıtlarda ara">⌕ Ara <kbd>Ctrl K</kbd></button><span class="date" id="date"></span></div></header>
 <div class="content"><div class="intro"><div><div class="kicker">PROJE GÜNLÜĞÜ</div><h1 id="title">Projelerin, bir arada.</h1><p class="desc" id="description">Her karar, her geliştirme ve her kilometre taşı kendi zamanında.</p></div><button class="primary" id="addEntry">＋ Bugüne kayıt ekle</button></div>
 <div class="stats" id="stats"></div>
 <section class="panel"><div class="panel-head"><div><h2>Zaman çizelgesi</h2><div class="hint">Geçmiş solda, bugün sağda. Kaydırarak keşfet.</div></div><div class="actions"><select id="filter" aria-label="Kayıt türü"><option value="all">Tüm kayıtlar</option><option value="development">Geliştirme</option><option value="decision">Karar</option><option value="issue">Sorun</option><option value="solution">Çözüm</option><option value="note">Not</option></select><button class="secondary" id="goToday">Bugüne git →</button></div></div><div class="viewport" id="viewport"><div id="timeline"></div></div></section>
@@ -169,6 +185,44 @@ const onKey=ev=>{if(ev.key==="Escape"){overlay.remove();document.removeEventList
 document.addEventListener("keydown",onKey);close.addEventListener("click",()=>document.removeEventListener("keydown",onKey),{once:true});
 $("modal").replaceChildren(overlay);close.focus();
 }
+
+function searchText(value){return String(value||"").toLocaleLowerCase("tr-TR").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ı/g,"i")}
+function openSearch(){
+const overlay=node("div","overlay"),panel=node("section","dialog search-dialog"),heading=node("div","search-heading");
+heading.append(node("h2","","Kayıtlarda ara"));
+const close=node("button","secondary","Kapat");close.type="button";heading.append(close);panel.append(heading);
+const controls=node("div","search-controls"),query=node("input","search-query"),scope=node("select","search-scope");
+query.type="search";query.placeholder="Başlık, açıklama, proje, tarih veya kayıt türü...";query.setAttribute("aria-label","Arama metni");
+const choices=[["all","Tüm projeler"]];if(selected)choices.push(["project","Bu proje"]);if(selected&&selectedDay)choices.push(["day","Bu gün"]);
+for(const [key,label] of choices){const opt=node("option","",label);opt.value=key;scope.append(opt)}
+scope.value=selectedDay?"day":selected?"project":"all";scope.setAttribute("aria-label","Arama kapsamı");
+controls.append(query,scope);panel.append(controls);
+const count=node("div","search-count"),results=node("div","search-results");results.setAttribute("aria-live","polite");panel.append(count,results);
+function update(){
+const tokens=searchText(query.value.trim()).split(/\s+/).filter(Boolean);
+const matches=data.entries.filter(e=>{
+if(scope.value==="project"&&e.projectId!==selected)return false;
+if(scope.value==="day"&&(e.projectId!==selected||e.date!==selectedDay))return false;
+const project=data.projects.find(p=>p.id===e.projectId);
+const haystack=searchText([e.title,e.body,e.date,pretty(e.date),TYPES[e.type],project?.name,project?.description].join(" "));
+return tokens.every(word=>haystack.includes(word));
+}).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt));
+results.replaceChildren();
+count.textContent=tokens.length?matches.length+" eşleşen kayıt":matches.length+" kayıt · Aramaya başlayabilirsin";
+for(const e of matches.slice(0,80)){
+const p=data.projects.find(p=>p.id===e.projectId),row=node("button","search-result");row.type="button";
+row.append(node("small","",(p?.name||"Proje")+" · "+pretty(e.date)+" · "+TYPES[e.type]),node("strong","",e.title));
+if(e.body){const excerpt=e.body.replace(/[#*\x60]/g," ").replace(/\s+/g," ").trim();row.append(node("p","",excerpt.length>160?excerpt.slice(0,160)+"…":excerpt))}
+row.onclick=()=>{selected=e.projectId;selectedDay=e.date;$("filter").value="all";dismiss();render();showEntry(e)};
+results.append(row)}
+if(!matches.length)results.append(node("div","search-empty","Eşleşen kayıt bulunamadı."));
+if(matches.length>80)results.append(node("div","search-count","İlk 80 sonuç gösteriliyor. Aramanı daraltabilirsin."));
+}
+const onKey=e=>{if(e.key==="Escape"){e.preventDefault();dismiss()}};
+function dismiss(){document.removeEventListener("keydown",onKey);overlay.remove()}
+close.onclick=dismiss;overlay.onclick=e=>{if(e.target===overlay)dismiss()};query.oninput=update;scope.onchange=update;
+document.addEventListener("keydown",onKey);overlay.append(panel);$("modal").replaceChildren(overlay);update();query.focus();
+}
 function openDay(date){selectedDay=date;render()}
 function renderDay(date,items){
 const wrap=$("timeline");wrap.replaceChildren();
@@ -211,7 +265,7 @@ row.onclick=()=>showEntry(entry);card.append(row)}
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
-$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
+$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
 $("import").onclick=()=>$("file").click();
 $("file").onchange=async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;try{if(file.size>20*1024*1024)throw Error("Dosya 20 MB sınırını aşıyor.");const imported=validate(JSON.parse(await file.text()));if(!confirm("İçe aktarma mevcut tüm proje ve kayıtların yerini alacak. Devam etmek istiyor musun?"))return;const old=data;data=imported;if(!persist()){data=old;return}selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("JSON yedeği içe aktarıldı.")}catch(err){alert("İçe aktarma başarısız: "+err.message)}};
