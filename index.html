@@ -264,13 +264,28 @@ button:focus-visible,select:focus-visible{outline:3px solid #aab7ff;outline-offs
 .entry-title-text{min-width:0}
 @media(min-width:1600px){.event{width:clamp(265px,18vw,350px)}.timeline{gap:25px}.event-card{max-height:370px}}
 @media(max-width:760px){.content{padding:28px 17px}.timeline.single-day{padding-left:22px;padding-right:22px}.timeline.single-day .event{width:min(100%,380px)}.timeline.single-day:before{left:22px;right:22px}}
+
+/* Local workspace separation — real and test */
+.workspace-switch{display:flex;gap:4px;background:#f2f4fb;border:1px solid #e8ecf6;border-radius:13px;padding:4px;margin:0 7px 8px}
+.workspace-option{flex:1;min-width:0;border:0;background:transparent;border-radius:9px;color:#8491a5;font-size:12px;font-weight:800;padding:10px 7px;transition:background .2s,box-shadow .2s,color .2s}
+.workspace-option.active{background:white;color:#465bd0;box-shadow:0 2px 9px #2a386d12}
+.workspace-option:hover:not(.active){color:#4a5a7a;background:#e9edf7}
+.workspace-info{margin:0 12px 23px;font-size:11px;color:#9aa5b6}
+.test-workspace .workspace-option.active{color:#a46d29}
+.test-workspace .workspace-info{color:#a47b40}
+.test-workspace .kicker{color:#ab7a37}
+.test-workspace .logo{background:linear-gradient(135deg,#d5a860,#b67d3c)}
+.test-workspace .primary{background:linear-gradient(140deg,#bc8b48,#a76d30);border-color:#ad7839;box-shadow:0 7px 16px #af824022}
+.test-workspace .primary:hover:not(:disabled){background:linear-gradient(140deg,#ca9751,#b77c36)}
+.test-workspace .project.active{background:#fff5e7;border-color:#f5e5d0;color:#a06e32}
+@media(max-width:760px){.workspace-switch{max-width:240px;margin-bottom:7px}.workspace-info{margin-bottom:15px}}
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
+<aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="workspace-switch" role="group" aria-label="Çalışma ortamı"><button id="workspaceReal" type="button" class="workspace-option active">Gerçek</button><button id="workspaceTest" type="button" class="workspace-option">Test</button></div><div class="workspace-info" id="workspaceInfo">Gerçek çalışma alanı</div><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
 <div class="sidebar-bottom"><button id="trash">♲ Çöp kutusu <span id="trashCount"></span></button><button id="export">↓ JSON dışa aktar</button><button id="import">↑ JSON içe aktar</button><input type="file" id="file" accept=".json,application/json" hidden></div></aside>
-<main><header class="top"><div class="crumb">Çalışma alanı / <strong id="crumb">Projelerim</strong></div><div class="top-right"><button class="search-launch" id="openSearch" type="button" aria-label="Kayıtlarda ara">⌕ Ara <kbd>Ctrl K</kbd></button><span class="date" id="date"></span></div></header>
+<main><header class="top"><div class="crumb"><span id="workspaceTop">Gerçek ortam</span> / <strong id="crumb">Projelerim</strong></div><div class="top-right"><button class="search-launch" id="openSearch" type="button" aria-label="Kayıtlarda ara">⌕ Ara <kbd>Ctrl K</kbd></button><span class="date" id="date"></span></div></header>
 <div class="content"><div class="intro"><div><div class="kicker">PROJE GÜNLÜĞÜ</div><h1 id="title">Projelerin, bir arada.</h1><p class="desc" id="description">Her karar, her geliştirme ve her kilometre taşı kendi zamanında.</p></div><button class="primary" id="addEntry">＋ Bugüne kayıt ekle</button></div>
 <div class="stats" id="stats"></div>
 <section class="panel"><div class="panel-head"><div><h2>Zaman çizelgesi</h2><div class="hint">Geçmiş solda, bugün sağda. Kaydırarak keşfet.</div></div><div class="actions"><select id="filter" aria-label="Kayıt türü"><option value="all">Tüm kayıtlar</option><option value="development">Geliştirme</option><option value="decision">Karar</option><option value="issue">Sorun</option><option value="solution">Çözüm</option><option value="note">Not</option></select><button class="secondary" id="goToday">Bugüne git →</button></div></div><div class="viewport" id="viewport"><div id="timeline"></div></div></section>
@@ -278,7 +293,7 @@ button:focus-visible,select:focus-visible{outline:3px solid #aab7ff;outline-offs
 <div id="modal"></div><div id="notifications" aria-live="polite"></div>
 <script>
 (()=>{"use strict";
-const KEY="timeline.v1",TYPES={development:"Geliştirme",decision:"Karar",issue:"Sorun",solution:"Çözüm",note:"Not"},COLORS={development:["#5263d8","#edf0ff"],decision:["#ad7c32","#fff5e1"],issue:["#c85861","#fff0f1"],solution:["#269a76","#e9f8f0"],note:["#778495","#f0f2f5"]},PALETTE=["#5263d8","#2b9e86","#bf8e48","#bf739c","#7d75ca","#428db4"];
+const KEY="timeline.v1",TEST_KEY="timeline.test.v1",WORKSPACE_SESSION_KEY="timeline.currentWorkspace",TYPES={development:"Geliştirme",decision:"Karar",issue:"Sorun",solution:"Çözüm",note:"Not"},COLORS={development:["#5263d8","#edf0ff"],decision:["#ad7c32","#fff5e1"],issue:["#c85861","#fff0f1"],solution:["#269a76","#e9f8f0"],note:["#778495","#f0f2f5"]},PALETTE=["#5263d8","#2b9e86","#bf8e48","#bf739c","#7d75ca","#428db4"];
 const $=id=>document.getElementById(id),node=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=String(txt);return e};
 const day=()=>{const d=new Date;return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")};
 const pretty=(s,opts={day:"numeric",month:"short",year:"numeric"})=>new Date(s+"T12:00:00").toLocaleDateString("tr-TR",opts);
@@ -293,9 +308,28 @@ for(const e of x.entries){if(e.relations!==undefined){if(!Array.isArray(e.relati
 const projectByEntry=new Map(x.entries.map(e=>[e.id,e.projectId]));
 return {version:1,projects:x.projects.map(p=>({id:p.id,name:p.name.trim(),description:typeof p.description==="string"?p.description.slice(0,500):"",createdAt:p.createdAt,color:PALETTE.includes(p.color)?p.color:PALETTE[0]})),entries:x.entries.map(e=>({id:e.id,projectId:e.projectId,type:e.type,title:e.title.trim(),body:e.body,date:e.date,createdAt:e.createdAt,...(typeof e.updatedAt==="string"?{updatedAt:e.updatedAt}:{}),...(typeof e.deletedAt==="string"?{deletedAt:e.deletedAt}:{}),...(Array.isArray(e.relations)?{relations:e.relations.filter(r=>!projectByEntry.has(r.targetId)||projectByEntry.get(r.targetId)===e.projectId).map(r=>({type:r.type,targetId:r.targetId}))}:{})}))};
 }
-let data;try{data=validate(JSON.parse(localStorage.getItem(KEY)))}catch{data=blank()}
-let selected=data.projects[0]?.id||null,selectedDay=null;
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(data));return true}catch{notify("Kaydetme başarısız. Depolama kapalı veya dolu.");return false}}
+let workspace="real";
+try{if(sessionStorage.getItem(WORKSPACE_SESSION_KEY)==="test")workspace="test"}catch{}
+function workspaceKey(){return workspace==="test"?TEST_KEY:KEY}
+function loadWorkspace(){
+try{const raw=localStorage.getItem(workspaceKey());return raw===null?blank():validate(JSON.parse(raw))}
+catch(error){alert("Çalışma alanındaki kayıtlar okunamadı. Var olan depolama değiştirilmedi. Önce JSON yedeği veya tarayıcı depolamasını kontrol et.\n"+error.message);return null}
+}
+let data=loadWorkspace(),selected=data?.projects[0]?.id||null,selectedDay=null;
+function persist(){
+if(!data)return false;
+try{localStorage.setItem(workspaceKey(),JSON.stringify(data));return true}catch{notify("Kaydetme başarısız. Depolama kapalı veya dolu.");return false}
+}
+function switchWorkspace(next){
+if(next===workspace)return;
+const previous=workspace;workspace=next;
+const loaded=loadWorkspace();
+if(!loaded){workspace=previous;return}
+data=loaded;selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";
+try{sessionStorage.setItem(WORKSPACE_SESSION_KEY,workspace)}catch{}
+render();notify(workspace==="test"?"Test ortamına geçildi. Gerçek verilerin ayrı tutuluyor.":"Gerçek ortama geçildi.");
+}
+
 function notify(message){const e=node("div","toast",message);$("notifications").replaceChildren(e);setTimeout(()=>e.remove(),3500)}
 function stat(value,label){const e=node("div","stat");e.append(node("strong","",value),node("span","",label));return e}
 function divider(){return node("div","divider")}
@@ -560,7 +594,13 @@ const link=node("button","day-open record-link","Kaydı aç →");link.onclick=(
 focus.append(list);wrap.append(focus);
 $("goToday").textContent="Tüm günler →";$("goToday").onclick=()=>{selectedDay=null;render()};
 }
-function render(){if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id&&!e.deletedAt):[];
+function render(){if(!data){$("workspaceInfo").textContent="Depolama okunamadı";return}
+$("workspaceReal").classList.toggle("active",workspace==="real");
+$("workspaceTest").classList.toggle("active",workspace==="test");
+$("workspaceInfo").textContent=workspace==="test"?"Deneme ortamı · Gerçek verilerden ayrı":"Gerçek çalışma alanı";
+$("workspaceTop").textContent=workspace==="test"?"Test ortamı":"Gerçek ortam";
+document.body.classList.toggle("test-workspace",workspace==="test");
+if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id&&!e.deletedAt):[];
 $("goToday").textContent="Bugüne git →";$("goToday").onclick=()=>{selectedDay=null;render();$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"})};$("date").textContent=pretty(day(),{day:"numeric",month:"long",year:"numeric"});$("crumb").textContent=p?.name||"Projelerim";$("title").textContent=p?.name||"Projelerin, bir arada.";$("description").textContent=p?.description||(p?"Bu projede alınan kararları ve yapılan çalışmaları kronolojik takip et.":"İlk projeni oluştur, gelişmeleri tarihleriyle saklamaya başla.");$("addEntry").disabled=!p;$("filter").disabled=!p;$("goToday").disabled=!p;
 $("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id&&!e.deletedAt).length));b.onclick=()=>{selected=project.id;selectedDay=null;$("filter").value="all";render()};return b}));
 const ordered=[...all].sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt));$("stats").replaceChildren(stat(all.length,"Toplam kayıt"),divider(),stat(all.filter(e=>e.type==="decision").length,"Alınan karar"),divider(),stat(new Set(all.map(e=>e.date)).size,"Aktif gün"),divider(),stat(ordered.length?pretty(ordered[ordered.length-1].date):"—","Son kayıt"));
@@ -582,10 +622,13 @@ section.append(header);for(const entry of entries)section.append(makeEntryRow(en
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 if(groups.size===1)line.classList.add("single-day");wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
-$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
-$("export").onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
+$("workspaceReal").onclick=()=>switchWorkspace("real");$("workspaceTest").onclick=()=>switchWorkspace("test");$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
+$("export").onclick=()=>{const blob=new Blob([JSON.stringify({...data,workspace},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-"+workspace+"-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
 $("import").onclick=()=>$("file").click();
-$("file").onchange=async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;try{if(file.size>20*1024*1024)throw Error("Dosya 20 MB sınırını aşıyor.");const imported=validate(JSON.parse(await file.text()));if(!confirm("İçe aktarma mevcut tüm proje ve kayıtların yerini alacak. Devam etmek istiyor musun?"))return;const old=data;data=imported;if(!persist()){data=old;return}selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("JSON yedeği içe aktarıldı.")}catch(err){alert("İçe aktarma başarısız: "+err.message)}};
+$("file").onchange=async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;try{if(file.size>20*1024*1024)throw Error("Dosya 20 MB sınırını aşıyor.");const parsed=JSON.parse(await file.text());const imported=validate(parsed);
+const source=parsed.workspace==="real"?"Gerçek":parsed.workspace==="test"?"Test":"Belirtilmemiş";
+const dest=workspace==="test"?"Test":"Gerçek";
+if(!confirm("Kaynak: "+source+" yedeği. Hedef: "+dest+" ortamı.\nBu işlem yalnızca "+dest+" ortamındaki tüm mevcut proje, kayıt ve çöp kutusunun üzerine yazacak. Devam edilsin mi?"))return;const old=data;data=imported;if(!persist()){data=old;return}selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("JSON yedeği içe aktarıldı.")}catch(err){alert("İçe aktarma başarısız: "+err.message)}};
 render();
 })();
 </script>
