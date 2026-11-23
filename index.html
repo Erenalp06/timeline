@@ -391,19 +391,35 @@ panel.append(heading,intro);
 const f=node("form"),typeLabel=node("label","field","İlişki türü"),type=node("select"),targetLabel=node("label","field","Bağlanacak kayıt"),target=node("select");
 for(const [k,v] of Object.entries(REL_TYPES)){const opt=node("option","",v);opt.value=k;type.append(opt)}
 for(const e of candidates){const opt=node("option","",pretty(e.date)+" · "+TYPES[e.type]+" · "+e.title);opt.value=e.id;target.append(opt)}
-typeLabel.append(type);targetLabel.append(target);f.append(typeLabel,targetLabel);
+function updateTargets(){
+const previous=target.value;target.replaceChildren();
+const eligible=candidates.filter(e=>type.value!=="resolves"||(original.type==="solution"&&e.type==="issue")||(original.type==="issue"&&e.type==="solution"));
+for(const e of eligible){const opt=node("option","",pretty(e.date)+" · "+TYPES[e.type]+" · "+e.title);opt.value=e.id;target.append(opt)}
+if(eligible.some(e=>e.id===previous))target.value=previous;
+save.disabled=!eligible.length;
+targetLabel.style.display=eligible.length?"":"none";
+hint.textContent=eligible.length?"":"Bu ilişki için uygun kayıt yok. Çözüyor ilişkisi, Sorun ile Çözüm kayıtları arasında kurulur.";
+}
+const hint=node("p","editor-help");
+typeLabel.append(type);targetLabel.append(target);f.append(typeLabel,targetLabel,hint);
 const actions=node("div","dialog-actions"),cancel=node("button","secondary","İptal"),save=node("button","primary","Bağlantı ekle");
-cancel.type="button";save.type="submit";actions.append(cancel,save);f.append(actions);panel.append(f);
+cancel.type="button";save.type="submit";actions.append(cancel,save);f.append(actions);panel.append(f);type.onchange=updateTargets;updateTargets();
 function close(){overlay.remove();document.removeEventListener("keydown",onKey)}
 function onKey(ev){if(ev.key==="Escape")close()}
 cancel.onclick=close;overlay.onclick=ev=>{if(ev.target===overlay)close()};document.addEventListener("keydown",onKey);
-f.onsubmit=ev=>{ev.preventDefault();const source=data.entries.find(e=>e.id===original.id&&!e.deletedAt),dest=data.entries.find(e=>e.id===target.value&&!e.deletedAt);
+f.onsubmit=ev=>{ev.preventDefault();
+const source=data.entries.find(e=>e.id===original.id&&!e.deletedAt),dest=data.entries.find(e=>e.id===target.value&&!e.deletedAt);
 if(!source||!dest||source.projectId!==dest.projectId){notify("Hedef kayıt artık bulunamıyor.");return}
-if(type.value==="resolves"&&(source.type!=="solution"||dest.type!=="issue")){notify("Çözüyor ilişkisi yalnızca Çözüm → Sorun için kullanılabilir.");return}
-const old=Array.isArray(source.relations)?source.relations.map(r=>({...r})):null;
-if(!(source.relations||[]).some(r=>r.targetId===dest.id&&r.type===type.value))source.relations=[...(source.relations||[]),{type:type.value,targetId:dest.id}];else{notify("Bu bağlantı zaten mevcut.");return}
-if(!persist()){if(old)source.relations=old;else delete source.relations;return}
+let owner=source,linked=dest;
+if(type.value==="resolves"){
+if(source.type==="issue"&&dest.type==="solution"){owner=dest;linked=source}
+else if(source.type!=="solution"||dest.type!=="issue"){notify("Çözüyor ilişkisi yalnızca Sorun ile Çözüm arasında kurulabilir.");return}
+}
+const old=Array.isArray(owner.relations)?owner.relations.map(r=>({...r})):null;
+if(!(owner.relations||[]).some(r=>r.targetId===linked.id&&r.type===type.value))owner.relations=[...(owner.relations||[]),{type:type.value,targetId:linked.id}];else{notify("Bu bağlantı zaten mevcut.");return}
+if(!persist()){if(old)owner.relations=old;else delete owner.relations;return}
 close();render();showEntry(source);notify("Bağlantı oluşturuldu.")};
+
 overlay.append(panel);$("modal").replaceChildren(overlay);type.focus();
 }
 function removeRelation(sourceId,type,targetId){
