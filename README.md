@@ -8,6 +8,10 @@ Tarayıcıda çalışan, projelere ayrılmış kişisel çalışma günlüğü.
 - Yalnızca **bugünün tarihine** kayıt oluşturma (tarih alanı seçilemiyor)
 - Geliştirme, karar, sorun, çözüm ve not kayıt türleri
 - Tür filtresi, yatay kaydırma ve "Bugüne git" düğmesi
+- Aynı güne ait kayıtları tek tarih altında gruplama ve günlük detay görünümü
+- Başlık, açıklama, Markdown, tarih, proje ve tür üzerinden üç kapsamlı arama: tüm projeler, mevcut proje, mevcut gün
+- Arama kısayolu: Ctrl+K (macOS: Cmd+K), sonuçtan ilgili gün ve kayda geçiş
+- LLM gerektirmeyen, kural tabanlı Markdown biçimlendirme ve önizleme
 - Verilerin tarayıcıda localStorage ile saklanması
 - Bütün projeleri JSON olarak dışa aktarma ve içe aktarma
 - Tamamen statik, frameworksüz HTML/CSS/JavaScript; sunucu ve veritabanı gerektirmez
@@ -34,4 +38,4 @@ Yeni kayıtlar cihazın yerel tarihi ve saati ile oluşturulur. Geçmişe tarih 
 
 ## Not
 
-Bu ilk sürümdür. Kayıtlar salt metindir; dosya eki, bulut senkronizasyonu ve kullanıcı hesabı yoktur.
+Bu erken sürümdür. Kayıtlar metin ve sınırlı Markdown biçimlendirmesi içerir; dosya eki, bulut senkronizasyonu ve kullanıcı hesabı yoktur.
