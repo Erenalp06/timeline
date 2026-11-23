@@ -283,11 +283,34 @@ button:focus-visible,select:focus-visible{outline:3px solid #aab7ff;outline-offs
 .copy-test{border:1px dashed #e8d6b9;border-radius:10px;background:#fffaf2;padding:10px 11px;color:#9e7136;font-size:11px;font-weight:750;margin:0 7px 17px;text-align:left}
 .copy-test:hover{background:#fff3e2;border-color:#d5a96a}
 .copy-test[hidden]{display:none}
+
+/* V11 — User-managed local workspaces */
+.workspace-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#98a4b6;font-size:10px;font-weight:850;letter-spacing:1.25px;margin:0 9px 9px}
+.workspace-heading button{border:0;background:none;color:#6779c9;font-size:11px;font-weight:750;letter-spacing:0;padding:5px;border-radius:6px}
+.workspace-heading button:hover{background:#eef1ff}
+.workspace-list{display:flex;flex-direction:column;gap:4px;max-height:190px;overflow:auto;padding:0 3px}
+.workspace-item{display:flex;align-items:center;gap:9px;width:100%;border:1px solid transparent;border-radius:11px;background:transparent;color:#758298;padding:10px 11px;font-size:12px;font-weight:750;text-align:left}
+.workspace-item.active{color:#4357c8;border-color:#e2e8fa;background:#eef1ff}
+.workspace-item:hover:not(.active){background:#f4f6fb}
+.workspace-dot{width:8px;height:8px;background:var(--dot-color);border-radius:99px;flex:none}
+.workspace-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workspace-create{margin:8px 6px 7px;border:1px dashed #dfe5f1;background:white;border-radius:11px;padding:10px 12px;text-align:left;font-size:11px;font-weight:750;color:#667895}
+.workspace-create:hover{border-color:#9eacf1;color:#465bc8}
+.workspace-info{margin:0 10px 18px;font-size:11px}
+.workspace-manager{width:min(640px,100%);max-height:85vh;overflow:auto}
+.workspace-manager-list{display:grid;gap:8px;max-height:45vh;overflow:auto}
+.workspace-manager-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #e9edf5;border-radius:13px}
+.workspace-manager-name{display:grid;gap:4px;min-width:0}
+.workspace-manager-name strong{font-size:13px;overflow-wrap:anywhere}
+.workspace-manager-name small{color:#95a0b0;font-size:11px}
+.workspace-manager-actions{display:flex;gap:7px;flex:none}
+.workspace-manager-actions button{padding:8px 10px}
+@media(max-width:760px){.workspace-list{flex-direction:row;max-height:none;overflow-x:auto}.workspace-item{width:auto;flex:none}.workspace-manager-item{align-items:flex-start;flex-direction:column}.workspace-manager-actions{width:100%}}
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="workspace-switch" role="group" aria-label="Çalışma ortamı"><button id="workspaceReal" type="button" class="workspace-option active">Gerçek</button><button id="workspaceTest" type="button" class="workspace-option">Test</button></div><div class="workspace-info" id="workspaceInfo">Gerçek çalışma alanı</div><button id="copyToTest" class="copy-test" type="button" hidden>Gerçek verileri teste kopyala</button><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
+<aside class="sidebar"><div class="brand"><div class="logo">↗</div>timeline.</div><div class="workspace-heading"><span>ÇALIŞMA ALANLARI</span><button id="manageWorkspaces" type="button" title="Çalışma alanlarını yönet">Yönet</button></div><div class="workspace-list" id="workspaceList" aria-label="Çalışma alanları"></div><button class="workspace-create" id="newWorkspace" type="button">＋ Yeni çalışma alanı</button><div class="workspace-info" id="workspaceInfo"></div><div class="label">Projelerim</div><nav class="projects" id="projects"></nav><button class="add-project" id="addProject">＋ Yeni proje oluştur</button>
 <div class="sidebar-bottom"><button id="trash">♲ Çöp kutusu <span id="trashCount"></span></button><button id="export">↓ JSON dışa aktar</button><button id="import">↑ JSON içe aktar</button><input type="file" id="file" accept=".json,application/json" hidden></div></aside>
 <main><header class="top"><div class="crumb"><span id="workspaceTop">Gerçek ortam</span> / <strong id="crumb">Projelerim</strong></div><div class="top-right"><button class="search-launch" id="openSearch" type="button" aria-label="Kayıtlarda ara">⌕ Ara <kbd>Ctrl K</kbd></button><span class="date" id="date"></span></div></header>
 <div class="content"><div class="intro"><div><div class="kicker">PROJE GÜNLÜĞÜ</div><h1 id="title">Projelerin, bir arada.</h1><p class="desc" id="description">Her karar, her geliştirme ve her kilometre taşı kendi zamanında.</p></div><button class="primary" id="addEntry">＋ Bugüne kayıt ekle</button></div>
@@ -297,7 +320,7 @@ button:focus-visible,select:focus-visible{outline:3px solid #aab7ff;outline-offs
 <div id="modal"></div><div id="notifications" aria-live="polite"></div>
 <script>
 (()=>{"use strict";
-const KEY="timeline.v1",TEST_KEY="timeline.test.v1",WORKSPACE_SESSION_KEY="timeline.currentWorkspace",TYPES={development:"Geliştirme",decision:"Karar",issue:"Sorun",solution:"Çözüm",note:"Not"},COLORS={development:["#5263d8","#edf0ff"],decision:["#ad7c32","#fff5e1"],issue:["#c85861","#fff0f1"],solution:["#269a76","#e9f8f0"],note:["#778495","#f0f2f5"]},PALETTE=["#5263d8","#2b9e86","#bf8e48","#bf739c","#7d75ca","#428db4"];
+const KEY="timeline.v1",TEST_KEY="timeline.test.v1",WORKSPACE_SESSION_KEY="timeline.currentWorkspace",WORKSPACE_REGISTRY_KEY="timeline.workspaces.v1",TYPES={development:"Geliştirme",decision:"Karar",issue:"Sorun",solution:"Çözüm",note:"Not"},COLORS={development:["#5263d8","#edf0ff"],decision:["#ad7c32","#fff5e1"],issue:["#c85861","#fff0f1"],solution:["#269a76","#e9f8f0"],note:["#778495","#f0f2f5"]},PALETTE=["#5263d8","#2b9e86","#bf8e48","#bf739c","#7d75ca","#428db4"];
 const $=id=>document.getElementById(id),node=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=String(txt);return e};
 const day=()=>{const d=new Date;return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")};
 const pretty=(s,opts={day:"numeric",month:"short",year:"numeric"})=>new Date(s+"T12:00:00").toLocaleDateString("tr-TR",opts);
@@ -312,38 +335,101 @@ for(const e of x.entries){if(e.relations!==undefined){if(!Array.isArray(e.relati
 const projectByEntry=new Map(x.entries.map(e=>[e.id,e.projectId]));
 return {version:1,projects:x.projects.map(p=>({id:p.id,name:p.name.trim(),description:typeof p.description==="string"?p.description.slice(0,500):"",createdAt:p.createdAt,color:PALETTE.includes(p.color)?p.color:PALETTE[0]})),entries:x.entries.map(e=>({id:e.id,projectId:e.projectId,type:e.type,title:e.title.trim(),body:e.body,date:e.date,createdAt:e.createdAt,...(typeof e.updatedAt==="string"?{updatedAt:e.updatedAt}:{}),...(typeof e.deletedAt==="string"?{deletedAt:e.deletedAt}:{}),...(Array.isArray(e.relations)?{relations:e.relations.filter(r=>!projectByEntry.has(r.targetId)||projectByEntry.get(r.targetId)===e.projectId).map(r=>({type:r.type,targetId:r.targetId}))}:{})}))};
 }
+const DEFAULT_WORKSPACES=[{id:"real",name:"Gerçek",kind:"real",key:KEY},{id:"test",name:"Test",kind:"test",key:TEST_KEY}];
+function storageKeyFor(w){return w.key||"timeline.workspace."+w.id+".v1"}
+function readRegistry(){
+try{
+const raw=localStorage.getItem(WORKSPACE_REGISTRY_KEY);
+if(raw===null)return DEFAULT_WORKSPACES.map(w=>({...w}));
+const parsed=JSON.parse(raw);
+if(!Array.isArray(parsed)||!parsed.length||parsed.length>100)throw Error("Çalışma alanları listesi geçersiz.");
+const used=new Set(),keys=new Set();
+return parsed.map(w=>{
+if(!w||typeof w.id!=="string"||!/^[a-z0-9-]{1,80}$/i.test(w.id)||used.has(w.id)||typeof w.name!=="string"||!w.name.trim()||w.name.length>70)throw Error("Çalışma alanı tanımı geçersiz.");
+const key=w.id==="real"?KEY:w.id==="test"?TEST_KEY:"timeline.workspace."+w.id+".v1";
+if(keys.has(key))throw Error("Çakışan çalışma alanı.");used.add(w.id);keys.add(key);
+return {id:w.id,name:w.name.trim(),kind:w.id==="test"?"test":w.id==="real"?"real":"custom",key};
+})
+}catch(err){alert("Çalışma alanları listesi okunamadı. Veri kaybını önlemek için işlem durduruldu: "+err.message);return null}
+}
+let workspaces=readRegistry();
 let workspace="real";
-try{if(sessionStorage.getItem(WORKSPACE_SESSION_KEY)==="test")workspace="test"}catch{}
-function workspaceKey(){return workspace==="test"?TEST_KEY:KEY}
+try{const saved=sessionStorage.getItem(WORKSPACE_SESSION_KEY);if(workspaces?.some(w=>w.id===saved))workspace=saved}catch{}
+if(workspaces&&!workspaces.some(w=>w.id===workspace))workspace=workspaces[0].id;
+function activeWorkspace(){return workspaces?.find(w=>w.id===workspace)}
+function workspaceKey(){return storageKeyFor(activeWorkspace())}
+function writeRegistry(next){
+try{localStorage.setItem(WORKSPACE_REGISTRY_KEY,JSON.stringify(next.map(({id,name})=>({id,name}))));workspaces=next;return true}
+catch{notify("Çalışma alanları kaydedilemedi.");return false}
+}
 function loadWorkspace(){
 try{const raw=localStorage.getItem(workspaceKey());return raw===null?blank():validate(JSON.parse(raw))}
-catch(error){alert("Çalışma alanındaki kayıtlar okunamadı. Var olan depolama değiştirilmedi. Önce JSON yedeği veya tarayıcı depolamasını kontrol et.\n"+error.message);return null}
+catch(error){alert("Çalışma alanındaki kayıtlar okunamadı. Var olan depolama değiştirilmedi.\n"+error.message);return null}
 }
-let data=loadWorkspace(),selected=data?.projects[0]?.id||null,selectedDay=null;
+let data=workspaces?loadWorkspace():null,selected=data?.projects[0]?.id||null,selectedDay=null;
 function persist(){
-if(!data)return false;
+if(!data||!activeWorkspace())return false;
 try{localStorage.setItem(workspaceKey(),JSON.stringify(data));return true}catch{notify("Kaydetme başarısız. Depolama kapalı veya dolu.");return false}
 }
-function copyRealToTest(){
-if(workspace!=="test")return;
-let original;
-try{const raw=localStorage.getItem(KEY);original=raw===null?blank():validate(JSON.parse(raw))}
-catch(err){alert("Gerçek veriler okunamadı, kopyalama yapılmadı: "+err.message);return}
-if(!confirm("Gerçek ortamdaki "+original.projects.length+" proje ve "+original.entries.length+" kayıt Test ortamına kopyalansın mı? Test ortamının mevcut içeriği tamamen değişecek. Gerçek veriler etkilenmez."))return;
-const old=data;data=original;
-if(!persist()){data=old;return}
-selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("Gerçek kayıtların kopyası Test ortamına yüklendi.");
-}
 function switchWorkspace(next){
-if(next===workspace)return;
+if(next===workspace||!workspaces?.some(w=>w.id===next))return;
 const previous=workspace;workspace=next;
-const loaded=loadWorkspace();
-if(!loaded){workspace=previous;return}
+const loaded=loadWorkspace();if(!loaded){workspace=previous;return}
 data=loaded;selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";
 try{sessionStorage.setItem(WORKSPACE_SESSION_KEY,workspace)}catch{}
-render();notify(workspace==="test"?"Test ortamına geçildi. Gerçek verilerin ayrı tutuluyor.":"Gerçek ortama geçildi.");
+render();notify(activeWorkspace().name+" çalışma alanına geçildi.");
 }
-
+function createWorkspace(){
+dialog("Çalışma alanı oluştur","Yeni alanın verileri diğerlerinden tamamen ayrı tutulur.",[
+{name:"name",label:"Çalışma alanının adı",placeholder:"Örn. Demo, Staging, Kişisel",max:70},
+{name:"source",label:"Başlangıç verileri",kind:"select",options:{empty:"Boş başlat",copy:"Mevcut alanın kopyası"}}
+],"Oluştur",v=>{
+if(!v.name)throw Error("İsim boş olamaz.");if(workspaces.length>=100)throw Error("En fazla 100 çalışma alanı oluşturulabilir.");
+const item={id:"w-"+id().replace(/[^a-z0-9-]/gi,"").toLowerCase(),name:v.name,kind:"custom"};
+const payload=v.source==="copy"?JSON.stringify(data):JSON.stringify(blank()),key=storageKeyFor(item);
+try{localStorage.setItem(key,payload)}catch{throw Error("Yeni çalışma alanı kaydedilemedi.")}
+if(!writeRegistry([...workspaces,item])){try{localStorage.removeItem(key)}catch{};return false}
+switchWorkspace(item.id);notify("Yeni çalışma alanı oluşturuldu.");
+})
+}
+function manageWorkspaces(){
+const overlay=node("div","overlay"),panel=node("section","dialog workspace-manager");
+const heading=node("h2","","Çalışma alanlarını yönet"),info=node("p","","Alanları yeniden adlandırabilir veya silebilirsin. Silme işlemi bir alanın bütün proje ve kayıtlarını kaldırır.");
+panel.append(heading,info);const list=node("div","workspace-manager-list");panel.append(list);
+const footer=node("div","dialog-actions"),close=node("button","secondary","Kapat"),create=node("button","primary","＋ Yeni alan");
+close.type="button";create.type="button";footer.append(close,create);panel.append(footer);
+function dismiss(){overlay.remove();document.removeEventListener("keydown",onKey)}
+function onKey(e){if(e.key==="Escape")dismiss()}
+close.onclick=dismiss;create.onclick=()=>{dismiss();createWorkspace()};
+overlay.onclick=e=>{if(e.target===overlay)dismiss()};document.addEventListener("keydown",onKey);
+function draw(){
+list.replaceChildren();
+for(const w of workspaces){
+const row=node("div","workspace-manager-item"),description=node("div","workspace-manager-name");
+description.append(node("strong","",w.name),node("small","",w.id===workspace?"Şu an açık":"Ayrı yerel veri alanı"));
+const actions=node("div","workspace-manager-actions"),rename=node("button","secondary","Adlandır"),remove=node("button","danger-button","Sil");
+rename.type="button";remove.type="button";
+rename.onclick=()=>{
+const value=prompt("Yeni çalışma alanı adı:",w.name);if(value===null)return;
+const name=value.trim();if(!name||name.length>70){alert("Ad 1–70 karakter olmalı.");return}
+if(writeRegistry(workspaces.map(x=>x.id===w.id?{...x,name}:x))){render();draw();notify("Çalışma alanı yeniden adlandırıldı.")}};
+remove.disabled=workspaces.length<=1;
+remove.onclick=()=>{
+if(workspaces.length<=1)return;
+let raw;try{raw=localStorage.getItem(storageKeyFor(w))}catch{alert("Çalışma alanı depolamasına erişilemedi.");return}
+let count="";try{const d=raw?validate(JSON.parse(raw)):blank();count=d.projects.length+" proje ve "+d.entries.length+" kayıt"}catch{count="okunamayan veriler"}
+if(!confirm("“"+w.name+"” alanı silinecek ("+count+"). Silmeden önce JSON yedeği almanı öneririz. Devam edilsin mi?"))return;
+const typed=prompt("Kalıcı silmeyi onaylamak için alan adını aynen yaz: "+w.name);if(typed!==w.name){notify("Silme iptal edildi.");return}
+const next=workspaces.filter(x=>x.id!==w.id);
+if(!writeRegistry(next))return;
+try{localStorage.removeItem(storageKeyFor(w))}catch{alert("Alan listeden kaldırıldı ancak depolama temizlenemedi. Tarayıcı verilerini kontrol et.")}
+if(workspace===w.id){workspace=next[0].id;const loaded=loadWorkspace();data=loaded||blank();selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";try{sessionStorage.setItem(WORKSPACE_SESSION_KEY,workspace)}catch{}}
+render();draw();notify("Çalışma alanı silindi.");
+};
+actions.append(rename,remove);row.append(description,actions);list.append(row)}
+}
+overlay.append(panel);$("modal").replaceChildren(overlay);draw();close.focus()
+}
 function notify(message){const e=node("div","toast",message);$("notifications").replaceChildren(e);setTimeout(()=>e.remove(),3500)}
 function stat(value,label){const e=node("div","stat");e.append(node("strong","",value),node("span","",label));return e}
 function divider(){return node("div","divider")}
@@ -608,12 +694,16 @@ const link=node("button","day-open record-link","Kaydı aç →");link.onclick=(
 focus.append(list);wrap.append(focus);
 $("goToday").textContent="Tüm günler →";$("goToday").onclick=()=>{selectedDay=null;render()};
 }
-function render(){if(!data){$("workspaceInfo").textContent="Depolama okunamadı";return}
-$("workspaceReal").classList.toggle("active",workspace==="real");
-$("workspaceTest").classList.toggle("active",workspace==="test");
-$("workspaceInfo").textContent=workspace==="test"?"Deneme ortamı · Gerçek verilerden ayrı":"Gerçek çalışma alanı";
-$("workspaceTop").textContent=workspace==="test"?"Test ortamı":"Gerçek ortam";
-document.body.classList.toggle("test-workspace",workspace==="test");$("copyToTest").hidden=workspace!=="test";
+function render(){
+if(!data||!workspaces){$("workspaceInfo").textContent="Depolama okunamadı";return}
+$("workspaceList").replaceChildren(...workspaces.map(w=>{
+const b=node("button","workspace-item"+(w.id===workspace?" active":"")),dot=node("span","workspace-dot");
+b.type="button";b.title=w.name;dot.style.setProperty("--dot-color",w.id==="test"?"#c38d48":w.id==="real"?"#586cdb":"#329d94");
+b.append(dot,node("span","workspace-name",w.name));b.onclick=()=>switchWorkspace(w.id);return b
+}));
+$("workspaceInfo").textContent=activeWorkspace().name+" · yerel çalışma alanı";
+$("workspaceTop").textContent=activeWorkspace().name;
+document.body.classList.toggle("test-workspace",workspace==="test");
 if(!data.projects.some(p=>p.id===selected))selected=data.projects[0]?.id||null;const p=data.projects.find(p=>p.id===selected),all=p?data.entries.filter(e=>e.projectId===p.id&&!e.deletedAt):[];
 $("goToday").textContent="Bugüne git →";$("goToday").onclick=()=>{selectedDay=null;render();$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"})};$("date").textContent=pretty(day(),{day:"numeric",month:"long",year:"numeric"});$("crumb").textContent=p?.name||"Projelerim";$("title").textContent=p?.name||"Projelerin, bir arada.";$("description").textContent=p?.description||(p?"Bu projede alınan kararları ve yapılan çalışmaları kronolojik takip et.":"İlk projeni oluştur, gelişmeleri tarihleriyle saklamaya başla.");$("addEntry").disabled=!p;$("filter").disabled=!p;$("goToday").disabled=!p;
 $("projects").replaceChildren(...data.projects.map(project=>{const b=node("button","project"+(project.id===selected?" active":""));const dot=node("span","dot");dot.style.setProperty("--color",project.color);b.append(dot,node("span","pname",project.name),node("span","count",data.entries.filter(e=>e.projectId===project.id&&!e.deletedAt).length));b.onclick=()=>{selected=project.id;selectedDay=null;$("filter").value="all";render()};return b}));
@@ -636,12 +726,12 @@ section.append(header);for(const entry of entries)section.append(makeEntryRow(en
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 if(groups.size===1)line.classList.add("single-day");wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
-$("copyToTest").onclick=copyRealToTest;$("workspaceReal").onclick=()=>switchWorkspace("real");$("workspaceTest").onclick=()=>switchWorkspace("test");$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
+$("manageWorkspaces").onclick=manageWorkspaces;$("newWorkspace").onclick=createWorkspace;$("trash").onclick=openTrash;$("openSearch").onclick=openSearch;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(!$("modal").querySelector(".overlay"))openSearch()}});$("addProject").onclick=newProject;$("addEntry").onclick=newEntry;$("goToday").onclick=()=>$("viewport").scrollTo({left:$("viewport").scrollWidth,behavior:"smooth"});$("filter").onchange=render;
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify({...data,workspace},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="timeline-"+workspace+"-backup-"+day()+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("JSON yedeği indirildi.")};
 $("import").onclick=()=>$("file").click();
 $("file").onchange=async e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;try{if(file.size>20*1024*1024)throw Error("Dosya 20 MB sınırını aşıyor.");const parsed=JSON.parse(await file.text());const imported=validate(parsed);
-const source=parsed.workspace==="real"?"Gerçek":parsed.workspace==="test"?"Test":"Belirtilmemiş";
-const dest=workspace==="test"?"Test":"Gerçek";
+const source=parsed.workspace==="real"?"Gerçek":parsed.workspace==="test"?"Test":typeof parsed.workspace==="string"?parsed.workspace:"Belirtilmemiş";
+const dest=activeWorkspace().name;
 if(!confirm("Kaynak: "+source+" yedeği. Hedef: "+dest+" ortamı.\nBu işlem yalnızca "+dest+" ortamındaki tüm mevcut proje, kayıt ve çöp kutusunun üzerine yazacak. Devam edilsin mi?"))return;const old=data;data=imported;if(!persist()){data=old;return}selected=data.projects[0]?.id||null;selectedDay=null;$("filter").value="all";render();notify("JSON yedeği içe aktarıldı.")}catch(err){alert("İçe aktarma başarısız: "+err.message)}};
 render();
 })();
