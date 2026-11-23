@@ -100,6 +100,22 @@ select{border:1px solid #e2e7ef;border-radius:9px;color:#687487;padding:10px;bac
 .search-result p{font-size:12px!important;color:#7c899b!important;line-height:1.5!important;margin:0!important;overflow-wrap:anywhere}
 .search-empty{text-align:center;padding:30px 12px;color:#9aa5b3;font-size:13px}
 @media(max-width:760px){.search-launch kbd{display:none}.search-launch{padding:9px}.top-right{gap:5px}.search-dialog{padding:16px}.search-controls{flex-direction:column}.search-scope{max-width:none}}
+
+/* V5: clear category groups inside each day */
+.event-card{max-height:340px;scrollbar-width:thin;scrollbar-color:#d6dced transparent}
+.category-section{border:1px solid var(--group-border);background:var(--group-bg);border-radius:11px;overflow:hidden;margin-top:9px}
+.category-header{display:flex;align-items:center;gap:7px;padding:9px 10px;color:var(--group-accent);font-size:11px;font-weight:800;letter-spacing:.1px}
+.category-indicator{width:7px;height:7px;flex:none;border-radius:50%;background:var(--group-accent)}
+.category-number{margin-left:auto;font-size:10px;font-weight:750;opacity:.78}
+.category-section .entry-title{padding:9px 10px;background:#fff;border-top:1px solid var(--group-border);border-radius:0}
+.category-section .entry-title:hover{background:var(--group-bg);transform:none}
+.category-section .entry-title-text{font-size:12px}
+.event-card .day-meta{margin:2px 3px 12px}
+.day-category{grid-column:1/-1;margin-top:5px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--group-accent)}
+.day-category:after{content:"";flex:1;height:1px;background:var(--group-border)}
+.day-category-count{font-size:11px;color:#9aa5b2;font-weight:600}
+.day-record{border-left:3px solid var(--record-color,#e7eaf2)}
+@media(max-width:760px){.event-card{max-height:300px}}
 </style>
 </head>
 <body>
@@ -224,6 +240,21 @@ close.onclick=dismiss;overlay.onclick=e=>{if(e.target===overlay)dismiss()};query
 document.addEventListener("keydown",onKey);overlay.append(panel);$("modal").replaceChildren(overlay);update();query.focus();
 }
 function openDay(date){selectedDay=date;render()}
+function groupByType(items){
+const groups=new Map();
+for(const item of items){if(!groups.has(item.type))groups.set(item.type,[]);groups.get(item.type).push(item)}
+return groups;
+}
+function typeGroupStyle(el,type){
+const color=COLORS[type];el.style.setProperty("--group-accent",color[0]);el.style.setProperty("--group-bg",color[1]);el.style.setProperty("--group-border",color[0]+"27");
+}
+function makeEntryRow(entry){
+const row=node("button","entry-title"),marker=node("span","entry-marker");
+row.type="button";row.style.setProperty("--entry-color",COLORS[entry.type][0]);row.title=TYPES[entry.type]+" — detayı aç";
+row.setAttribute("aria-label",entry.title+" — "+TYPES[entry.type]+" detayını aç");
+row.append(marker,node("span","entry-title-text",entry.title),node("span","entry-arrow","›"));
+row.onclick=()=>showEntry(entry);return row;
+}
 function renderDay(date,items){
 const wrap=$("timeline");wrap.replaceChildren();
 const focus=node("div","day-focus"),back=node("button","secondary day-back","← Tüm zaman çizelgesine dön");
@@ -233,11 +264,18 @@ headingLeft.append(node("h2","",pretty(date,{day:"numeric",month:"long",year:"nu
 heading.append(headingLeft);
 if(date===day()){const add=node("button","primary","＋ Bugüne kayıt ekle");add.onclick=newEntry;heading.append(add)}
 focus.append(heading);
-const list=node("div","day-list");
-for(const [index,e] of items.entries()){
-const card=node("article","day-record"),badge=node("span","chip",TYPES[e.type]);badge.style.setProperty("--accent",COLORS[e.type][0]);badge.style.setProperty("--tint",COLORS[e.type][1]);card.style.animationDelay=Math.min(index,12)*40+"ms";
+const list=node("div","day-list");let index=0;
+for(const [type,records] of groupByType(items)){
+const heading=node("div","day-category");typeGroupStyle(heading,type);
+heading.append(node("span","category-indicator"),node("span","",TYPES[type]),node("span","day-category-count",records.length+" kayıt"));list.append(heading);
+for(const e of records){
+const card=node("article","day-record"),badge=node("span","chip",TYPES[e.type]);
+badge.style.setProperty("--accent",COLORS[e.type][0]);badge.style.setProperty("--tint",COLORS[e.type][1]);
+card.style.setProperty("--record-color",COLORS[e.type][0]);card.style.animationDelay=Math.min(index++,12)*40+"ms";
 card.append(badge,node("h3","",e.title),node("span","detail-date",new Date(e.createdAt).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})));
-if(e.body)card.append(renderMarkdown(e.body));const link=node("button","day-open record-link","Kaydı aç →");link.onclick=()=>showEntry(e);card.append(link);list.append(card)}
+if(e.body)card.append(renderMarkdown(e.body));
+const link=node("button","day-open record-link","Kaydı aç →");link.onclick=()=>showEntry(e);card.append(link);list.append(card)}
+}
 focus.append(list);wrap.append(focus);
 $("goToday").textContent="Tüm günler →";$("goToday").onclick=()=>{selectedDay=null;render()};
 }
@@ -256,12 +294,10 @@ const event=node("div","event"),accent=items.length===1?COLORS[items[0].type][0]
 event.style.setProperty("--accent",accent);event.style.setProperty("--delay",Math.min(index++,10)*45+"ms");
 const card=node("article","event-card"),meta=node("div","day-meta");
 meta.append(node("span","",items.length===1?"Günlük kayıt":"Günlük kayıtlar"),node("span","day-badge",items.length+" kayıt"));card.append(meta);
-for(const entry of items){
-const row=node("button","entry-title"),marker=node("span","entry-marker");
-row.type="button";row.style.setProperty("--entry-color",COLORS[entry.type][0]);row.title=TYPES[entry.type]+" — detayı aç";
-row.setAttribute("aria-label",entry.title+" — "+TYPES[entry.type]+" detayını aç");
-row.append(marker,node("span","entry-title-text",entry.title),node("span","entry-arrow","›"));
-row.onclick=()=>showEntry(entry);card.append(row)}
+for(const [type,entries] of groupByType(items)){
+const section=node("section","category-section"),header=node("div","category-header");typeGroupStyle(section,type);
+header.append(node("span","category-indicator"),node("span","",TYPES[type]),node("span","category-number",entries.length+" kayıt"));
+section.append(header);for(const entry of entries)section.append(makeEntryRow(entry));card.append(section)}
 const dateButton=node("button","day-date-link event-date",pretty(date));dateButton.onclick=()=>openDay(date);const openDayBtn=node("button","","Günü aç →");openDayBtn.onclick=()=>openDay(date);meta.append(openDayBtn);card.onclick=ev=>{if(ev.target===card||ev.target===meta)openDay(date)};event.append(dateButton,node("div","event-node"),node("div","stem"),card);line.append(event)}
 wrap.append(line);requestAnimationFrame(()=>{$("viewport").scrollLeft=$("viewport").scrollWidth})}
 
