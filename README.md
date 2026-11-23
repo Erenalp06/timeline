@@ -53,3 +53,9 @@ Bir kayıt silindiğinde zaman çizelgesinden ve aramadan gizlenir; çöp kutusu
 Bir kayıt detayını açıp **Bağlantı ekle** butonunu kullanarak aynı projedeki başka bir kayıtla ilişki kurabilirsin. **Çözüyor** ilişkisi, çözüm kaydından sorun kaydına oluşturulur. Sorun kaydının **Çözüldü** etiketi, buna gelen bağlantıdan hesaplanır. İlişkiler tek tek kaldırılabilir; bağlantı kaldırmak kayıtları silmez. İlişkiler JSON yedeğinde kaydedilir.
 
 `version: 1` korunmuştur. Eski yedeklerde `relations` bulunmayabilir; bu alan isteğe bağlıdır. Bağlantılar `relations: [{"type":"resolves|continues|related","targetId":"..."}]` biçiminde saklanır. Aynı proje kısıtlaması uygulanır. JSON içe aktarımı eskiden olduğu gibi mevcut verilerin tamamının yerine geçer; öncesinde yedek alın.
+
+## Gerçek / Test çalışma alanları
+
+Sol menüde **Gerçek** ve **Test** arasında geçiş yapılabilir. Gerçek ortam mevcut `localStorage` anahtarı olan `timeline.v1` ile devam eder; **mevcut veriler için otomatik taşıma yapılmaz**. Test ortamı `timeline.test.v1` anahtarında bağımsız tutulur. Seçilen ortam sekme bazında `sessionStorage` ile hatırlanır. Her ortamın projeleri, kayıtları, bağlantıları, çöp kutusu, içe/dışa aktarma işlemleri ayrıdır.
+
+Test ortamındaki **Gerçek verileri teste kopyala** düğmesi, onaydan sonra gerçek verilerin bir kopyasını test alanına aktarır. Gerçek alanı değiştirmez ancak testteki eski verilerin üzerine yazar. JSON yedekleri `workspace` alanı içerir; eski sürümün `version:1` yedekleri uyumludur. İçe aktarmada kaynak ve hedef ortam gösterilir; seçili çalışma alanına yazılır. Bu ayrım sunucu tarafı çok kiracılı yapı veya kimlik doğrulama değildir ve yalnızca o tarayıcı profiline özgüdür.
